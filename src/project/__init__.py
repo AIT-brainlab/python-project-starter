@@ -9,10 +9,10 @@ load_dotenv(dotenv_path=_ENVFILE)
 
 
 # We do this to load the logger (which will config the logger for this module)
-import python_project_starter.utils.logger # type: ignore
+import project.logger # type: ignore
 from typer import Typer
-from python_project_starter.cli import cli as main_cli# type: ignore
-from python_project_starter.processor.subtraction import cli as subtract_cli# type: ignore
+from project.cli import cli as main_cli# type: ignore
+from project.processor.subtraction import cli as subtract_cli# type: ignore
 
 
 # This is how you do logging

@@ -11,7 +11,14 @@ import os
 import logging
 
 _PROJECT_NAME = os.environ["PROJECT_NAME"]
+
+# adding command
+from project.processor.subtraction import cli as subtract_cli
+from project.web import cli as web_cli
+
 cli = typer.Typer()
+cli.add_typer(subtract_cli)
+cli.add_typer(web_cli, name="web", help="The cli for web module")
 
 @cli.command()
 def command_1():
