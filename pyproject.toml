@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "fastapi>=0.136.1",
+    "jinja2>=3.1.6",
     "numpy>=2.4.4",
     "pandas>=3.0.2",
     "pytest-coverage>=0.0",
@@ -25,5 +26,5 @@ dev = [
 package = true
 
 [project.scripts]
-python-project-starter = "python_project_starter:cli"
+python-project-starter = "project:cli"
 
