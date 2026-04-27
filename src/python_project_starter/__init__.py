@@ -1,22 +1,15 @@
-import python_project_starter.utils.logger
+# We do this to load the logger (which will config the logger for this module)
+import python_project_starter.utils.logger # type: ignore
+from typer import Typer
+from python_project_starter.cli import cli as main_cli# type: ignore
 
-import typer
-import os
-_PROJECT_NAME = os.environ["PROJECT_NAME"]
-cli = typer.Typer()
 
-@cli.command()
-def home():
-    """
-    This is the default command
-    """
-    print(f"Welcome to {_PROJECT_NAME}")
+# This is how you do logging
+import logging
+logging.debug("App start")
 
-@cli.command()
-def home2():
-    """
-    This is the default command
-    """
-    print(f"Welcome to {_PROJECT_NAME} na ja")
+# This is how can we structure the cli
+cli = Typer()
+cli.add_typer(main_cli)
 
-# logging.info("App start")
+
