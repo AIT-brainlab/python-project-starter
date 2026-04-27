@@ -2,6 +2,7 @@
 import python_project_starter.utils.logger # type: ignore
 from typer import Typer
 from python_project_starter.cli import cli as main_cli# type: ignore
+from python_project_starter.processor.subtraction import cli as subtract_cli# type: ignore
 
 
 # This is how you do logging
@@ -11,5 +12,6 @@ logging.debug("App start")
 # This is how can we structure the cli
 cli = Typer()
 cli.add_typer(main_cli)
+cli.add_typer(subtract_cli)
 
 
