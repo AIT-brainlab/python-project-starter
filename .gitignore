@@ -214,6 +214,7 @@ data/*
 docs/*
 models/*
 local.env
-
-!.keeps
 .DS_Store
+
+!.devcontainer/dev/.env
+!.keeps

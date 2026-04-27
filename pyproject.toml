@@ -21,3 +21,6 @@ dev = [
 
 [tool.uv]
 package = true
+
+[project.scripts]
+python-project-starter = "python_project_starter:cli"

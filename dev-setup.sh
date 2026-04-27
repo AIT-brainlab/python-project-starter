@@ -16,5 +16,5 @@ uv python install
 echo "-- Loading pip"
 uv sync
 
-# echo "-- Installing CLI"
-# <project_name> --install-completion
+echo "-- Installing CLI"
+${PROJECT_NAME} --install-completion
