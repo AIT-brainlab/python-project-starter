@@ -8,6 +8,8 @@ dependencies = [
     "fastapi>=0.136.1",
     "numpy>=2.4.4",
     "pandas>=3.0.2",
+    "pytest-coverage>=0.0",
+    "pytest-env>=1.6.0",
     "scikit-learn>=1.8.0",
     "typer>=0.25.0",
     "uvicorn>=0.46.0",
@@ -24,3 +26,4 @@ package = true
 
 [project.scripts]
 python-project-starter = "python_project_starter:cli"
+
