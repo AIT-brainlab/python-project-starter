@@ -8,6 +8,8 @@ All `python` project should look like this and follow the standard.
   - [TODO](#todo)
   - [Project structure](#project-structure)
   - [How to use this](#how-to-use-this)
+  - [Django Setup](#django-setup)
+    - [Start a new app module](#start-a-new-app-module)
 
 ## Implemented standard
 
@@ -16,6 +18,7 @@ All `python` project should look like this and follow the standard.
 3. command line (with `Typer`)
 4. basic web server and REST API (`with FastAPI and Jinja`)
 5. processor module with celery support (options for those who may not need `pub-sub/queue`)
+6. Define how Django should be implemented.
 
 ## TODO
 
@@ -37,6 +40,22 @@ All `python` project should look like this and follow the standard.
 |-- notebooks/                   # ! Where jupyter notebook should be stored.
 |   `-- 0-starter.ipynb
 |-- src/                         # ! Where development modules should be.
+|   |-- django_core              # |
+|   |   |-- __init__.py          # | 
+|   |   |-- asgi.py              # | 
+|   |   |-- settings.py          # | 
+|   |   |-- urls.py              # | 
+|   |   `-- wsgi.py              # | 
+|   |-- django_module            # | 
+|   |   |-- __init__.py          # |--- These are `Django` related structure
+|   |   |-- admin.py             # | 
+|   |   |-- apps.py              # | 
+|   |   |-- migrations           # | 
+|   |   |   `-- __init__.py      # | 
+|   |   |-- models.py            # | 
+|   |   |-- tests.py             # | 
+|   |   `-- views.py             # | 
+|-- django_manage.py             # | 
 |   |-- project                  # Example modules with Brainlab practice.
 |       |-- __init__.py
 |       |-- cli.py
@@ -72,5 +91,72 @@ All `python` project should look like this and follow the standard.
 ## How to use this
 
 
+## Django Setup 
 
+Let's agree that we should develop a `Django app module` not an entire Django website.
+In this AIT Brainlab best practice, the folders that are related to the Django are
 
+```
+...
+|-- src/                         
+|   |-- django_core              # |
+|   |   |-- __init__.py          # | 
+|   |   |-- asgi.py              # | 
+|   |   |-- settings.py          # | 
+|   |   |-- urls.py              # | 
+|   |   `-- wsgi.py              # | 
+|   |-- django_module            # | 
+|   |   |-- __init__.py          # |--- These are `Django` related structure
+|   |   |-- admin.py             # | 
+|   |   |-- apps.py              # | 
+|   |   |-- migrations           # | 
+|   |   |   `-- __init__.py      # | 
+|   |   |-- models.py            # | 
+|   |   |-- tests.py             # | 
+|   |   `-- views.py             # | 
+|-- django_manage.py             # | 
+...
+```
+
+The provided `django_core` is configuration for the development purposes.
+The production may have different configuration.
+Thus, your main development should be a modular module that is compatible with any django project.
+
+To access typical django operation, you use
+
+```sh
+uv run django_manage.py
+```
+
+For example, if you want to start the development server, you use
+
+```sh
+uv run django_manage.py runserver 0.0.0.0:8000
+```
+
+### Start a new app module
+
+Generate a django app boilerplate
+
+```sh
+#                       startapp <app_name> <app_folder>
+uv run django_manage.py startapp myapp src/myapp
+```
+
+Then, add the module to the development project settings (`/src/django_core/settings.py`)
+
+```py
+
+# Application definition
+
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'myapp'  # <---- Add here
+]
+
+```
