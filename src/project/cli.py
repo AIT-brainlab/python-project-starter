@@ -13,11 +13,17 @@ import logging
 _PROJECT_NAME = os.environ["PROJECT_NAME"]
 
 # adding command
-from project.processor.subtraction import cli as subtract_cli
+from project.processor import cli as processor_cli
+from project.processor_celery import cli as processor_celery_cli
 from project.web import cli as web_cli
 
 cli = typer.Typer()
-cli.add_typer(subtract_cli)
+cli.add_typer(processor_cli, 
+              name="processor",
+              help="The processor module.")
+cli.add_typer(processor_celery_cli, 
+              name="processor_celery",
+              help="The processory module that will use celery as Queue")
 cli.add_typer(web_cli, name="web", help="The cli for web module")
 
 @cli.command()
@@ -27,14 +33,3 @@ def command_1():
     """
     logging.debug("Calling `command_1`")
     print(f"Welcome to {_PROJECT_NAME}")
-
-
-@cli.command()
-def addition(a:Annotated[int, typer.Argument(help="First number argument")], 
-        b:Annotated[int, typer.Argument(help="Second number argument")]):
-    """
-    This is the another default command.
-    It will perform an addition between `a` and `b`.
-    """
-    logging.debug("Calling `addition`")
-    print(f"The calculation is {a+b}.")

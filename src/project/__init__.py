@@ -12,7 +12,7 @@ load_dotenv(dotenv_path=_ENVFILE)
 import project.logger # type: ignore
 from typer import Typer
 from project.cli import cli as main_cli# type: ignore
-from project.processor.subtraction import cli as subtract_cli# type: ignore
+from project.processor.works import cli as subtract_cli# type: ignore
 
 
 # This is how you do logging

@@ -1,4 +1,1 @@
-from typer import Typer
-
-cli = Typer()
-
+from project.processor.works import cli # type: ignore
