@@ -7,7 +7,6 @@ All `python` project should look like this and follow the standard.
   - [Implemented standard](#implemented-standard)
   - [TODO](#todo)
   - [Project structure](#project-structure)
-  - [How to use this](#how-to-use-this)
   - [Django Setup](#django-setup)
     - [Start a new app module](#start-a-new-app-module)
 
@@ -88,8 +87,6 @@ All `python` project should look like this and follow the standard.
 `-- uv.lock
 ```
 
-## How to use this
-
 
 ## Django Setup 
 
@@ -146,7 +143,7 @@ uv run django_manage.py startapp myapp src/myapp
 Then, add the module to the development project settings (`/src/django_core/settings.py`)
 
 ```py
-
+...
 # Application definition
 
 INSTALLED_APPS = [
@@ -158,5 +155,19 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'myapp'  # <---- Add here
 ]
+...
+```
 
+Finally, add the routing in `/src/django_core/urls.py`
+
+```py
+...
+from django.contrib import admin
+from django.urls import include, path
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path("myapp/", include("myapp.urls")),  #<---- Add here
+]
+...
 ```

@@ -7,9 +7,6 @@ if [ "$IS_DEVCONTAINER" = "True" ]; then
     sudo chown 1000:1000 .uv_cache
 fi
 
-echo "-- Loading local.env"
-source local.env
-
 echo "-- Installing Python"
 uv python install
 
