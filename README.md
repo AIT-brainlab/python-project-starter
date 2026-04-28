@@ -1,5 +1,29 @@
 # python-project-starter
-This is the template starter for Python project
+
+This repository is a define practices for AIT Brainlab to follow.
+All `python` project should look like this and follow the standard.
+
+- [python-project-starter](#python-project-starter)
+  - [Implemented standard](#implemented-standard)
+  - [TODO](#todo)
+  - [Project structure](#project-structure)
+  - [How to use this](#how-to-use-this)
+
+## Implemented standard
+
+1. Project structure
+2. logging system
+3. command line (with `Typer`)
+4. basic web server and REST API (`with FastAPI and Jinja`)
+5. processor module with celery support (options for those who may not need `pub-sub/queue`)
+
+## TODO
+
+- [ ] Distribution standard (containerize for distribution)
+- [ ] Chat/LLM standard (interface, prompt, mcp)
+- [ ] tools/framework (django, some other github repo)
+
+## Project structure
 
 ```
 .
@@ -46,4 +70,7 @@ This is the template starter for Python project
 ```
 
 ## How to use this
+
+
+
 
