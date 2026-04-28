@@ -1,11 +1,11 @@
 # import pytest
-from .works import addition, subtraction, multiplier
+from .works import addition_job, subtraction_job, multiplier_job
 
 def test_addition():
-    assert addition(10,1) == 11
+    assert addition_job(10,1) == 11
 
 def test_subtraction():
-    assert subtraction(10,1) == 9
+    assert subtraction_job(10,1) == 9
 
 def test_multiplier():
-    assert multiplier(2,6) == 12
+    assert multiplier_job(2,6) == 12

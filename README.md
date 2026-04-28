@@ -7,8 +7,14 @@ All `python` project should look like this and follow the standard.
   - [Implemented standard](#implemented-standard)
   - [TODO](#todo)
   - [Project structure](#project-structure)
+  - [How to use this](#how-to-use-this)
+    - [Change project name](#change-project-name)
+    - [Setup development](#setup-development)
+    - [Command Script](#command-script)
+    - [Install command script completion](#install-command-script-completion)
   - [Django Setup](#django-setup)
     - [Start a new app module](#start-a-new-app-module)
+  - [License](#license)
 
 ## Implemented standard
 
@@ -23,7 +29,7 @@ All `python` project should look like this and follow the standard.
 
 - [ ] Distribution standard (containerize for distribution)
 - [ ] Chat/LLM standard (interface, prompt, mcp)
-- [ ] tools/framework (django, some other github repo)
+- [ ] tools/framework (some other github repo)
 
 ## Project structure
 
@@ -87,13 +93,79 @@ All `python` project should look like this and follow the standard.
 `-- uv.lock
 ```
 
+## How to use this
 
-## Django Setup 
+There are three main tools we use to manage the project.
+
+1. `uv`: python project manager
+2. devcontainer: where we spin development environment
+3. `mypy`: a complier-ish that will check if your code meet certain standard
+
+### Change project name
+
+We intend that this repository will be used as a template for `python` development.
+There are a lot of places where we have to add a `python-project-start` string to make this run properly.
+You should change this name to follow your project/module name.
+
+To change the name, you start from your project/repository name.
+
+```sh
+/some/path/to/your/repository/<project_name>
+```
+
+Let's say we will create another project based on this template with name `myproject`
+
+```sh
+/some/path/path/to/your/repository/myproject
+```
+
+The place where you need to change the name are
+
+1. `/.devcontainer/dev/.env`: parameter `PROJECT_NAME`
+2. `pyproject.toml`: parameter `project.name`
+3. `local.env.example`: parameter `PROJECT_NAME`
+
+This should be enough for you to start developing.
+
+### Setup development
+
+1. (optional) spin up devcontainer in vscode (<kbd>cmd/ctrl</kbd> + <kbd>shift</kbd> + <kbd>P</kbd> and choose `Dev Containers: Rebuild and reopen in Container`)
+2. Set up the development environment in one go using `bash dev-setup.sh`
+
+### Command Script
+
+The project has a command script.
+By default it uses `python-project-starter`.
+
+```sh
+uv run python-project-starter --help
+```
+
+If you want to change this command name, you have to configure the following
+
+1. `pyproject.toml`: under section `project.scripts`, change the command name
+2. `supervisord.conf`: This use your command name to spawn processes
+
+### Install command script completion
+
+Command line solution uses `Typer` library which has completion capabitily.
+After you write the command name, you can use <kbd>tab</kbd> to get suggestion/completion.
+
+This functionality is automatically set for if you use `.devcontainer`.
+For local user, you will need to run this manually (because I don't know if you want this install in your computer).
+
+```sh
+uv run <command_name> --install-completion
+```
+
+To remove this, get the intallation path from the command and delete the file manually.
+
+## Django Setup
 
 Let's agree that we should develop a `Django app module` not an entire Django website.
 In this AIT Brainlab best practice, the folders that are related to the Django are
 
-```
+```sh
 ...
 |-- src/                         
 |   |-- django_core              # |
@@ -171,3 +243,7 @@ urlpatterns = [
 ]
 ...
 ```
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

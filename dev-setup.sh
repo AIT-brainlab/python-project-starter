@@ -13,5 +13,7 @@ uv python install
 echo "-- Loading pip"
 uv sync
 
-echo "-- Installing CLI"
-${PROJECT_NAME} --install-completion
+if [ "$IS_DEVCONTAINER" = "True" ]; then
+    echo "-- Installing CLI"
+    uv run ${PROJECT_NAME} --install-completion
+fi
