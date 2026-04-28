@@ -207,14 +207,13 @@ marimo/_lsp/
 __marimo__/
 
 
+.DS_Store
 .uv_cache
 
 data/*
 !data/example.csv
-docs/*
 models/*
 local.env
-.DS_Store
 
 .devcontainer/**/data
 
