@@ -3,9 +3,6 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-# from myqueue import p1_extract_job_post, hello
-# from myqueue import app as celery_app
-# from celery.result import AsyncResult
 import os
 
 _BUILD_VERSION:str = os.environ["BUILD_VERSION"]

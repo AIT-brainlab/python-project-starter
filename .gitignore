@@ -216,5 +216,7 @@ models/*
 local.env
 .DS_Store
 
+.devcontainer/**/data
+
 !.devcontainer/dev/.env
 !.keeps
