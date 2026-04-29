@@ -15,5 +15,5 @@ uv sync
 
 if [ "$IS_DEVCONTAINER" = "True" ]; then
     echo "-- Installing CLI"
-    uv run ${PROJECT_NAME} --install-completion
+    uv run $PROJECT_NAME --install-completion
 fi
