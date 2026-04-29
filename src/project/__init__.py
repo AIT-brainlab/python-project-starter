@@ -10,18 +10,12 @@ load_dotenv(dotenv_path=_ENVFILE)
 
 # We do this to load the logger (which will config the logger for this module)
 import project.logger # type: ignore
-from typer import Typer
-from project.cli import cli as main_cli# type: ignore
-from project.processor.works import cli as subtract_cli# type: ignore
-
 
 # This is how you do logging
 import logging
 logging.debug("App start")
 
-# This is how can we structure the cli
-cli = Typer()
-cli.add_typer(main_cli)
-cli.add_typer(subtract_cli)
+# Start loading modules
+from project.cli import cli # typer: ignore
 
 
