@@ -4,11 +4,7 @@ import logging
 import time
 
 import os
-from celery import Celery # type: ignore
-
-_REDIS_URL = os.environ["REDIS_URL"]
-logging.debug(f"Connecting to REDIS_URL={_REDIS_URL}")
-queue = Celery("python-project-starter", broker=_REDIS_URL, backend=_REDIS_URL, task_track_started=True)
+from project.celery import queue
 
 @queue.task
 def addition_job(a:int, b:int) -> int:
