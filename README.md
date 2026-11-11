@@ -5,6 +5,10 @@ All `python` project should look like this and follow the standard.
 
 - [python-project-starter](#python-project-starter)
   - [Implemented standard](#implemented-standard)
+  - [Branching & Environment Strategy (dev / stg / prod)](#branching--environment-strategy-dev--stg--prod)
+    - [Branch Hierarchy](#branch-hierarchy)
+    - [Promotion Workflow](#promotion-workflow)
+    - [Environment Configurations](#environment-configurations)
   - [TODO](#todo)
   - [Project structure](#project-structure)
   - [How to use this](#how-to-use-this)
@@ -24,6 +28,72 @@ All `python` project should look like this and follow the standard.
 4. basic web server and REST API (`with FastAPI and Jinja`)
 5. processor module with celery support (options for those who may not need `pub-sub/queue`)
 6. Define how Django should be implemented.
+7. Branching and environment lifecycle (`dev`, `stg`, `prod` / `main`).
+
+## Branching & Environment Strategy (dev / stg / prod)
+
+This repository follows a 3-tier environment and branching model for all projects at AIT Brainlab. The **`dev`** branch serves as the default main working branch.
+
+### Branch Hierarchy
+
+| Environment | Branch | Role | Default / Working Branch | Debug |
+|---|---|---|---|---|
+| **Development** | `dev` | Active day-to-day development, feature PR integration | **Yes (Default)** | `True` |
+| **Staging** | `stg` | Pre-production QA, integration testing, staging release | No | `False` |
+| **Production** | `main` | Production deployment, stable releases, version tags | No | `False` |
+
+- **`dev` (Default)**: All feature branches fork off `dev` and merge back into `dev`.
+- **`stg`**: Merged from `dev` when preparing a release candidate for QA/testing.
+- **`main` (Production)**: Merged from `stg` after validation. Corresponds to production deployments (`prod`). Release tags (e.g. `v1.0.0`) are created on `main`.
+
+### Promotion Workflow
+
+```
+[feature/xxx] ---> [dev] ---> [stg] ---> [main (prod)]
+```
+
+1. **Feature development**:
+   ```sh
+   git checkout dev
+   git pull origin dev
+   git checkout -b feature/my-feature
+   ```
+2. **Merge to `dev`**:
+   Submit a PR targeting `dev`. CI runs automated tests on `dev`.
+3. **Promote `dev` to `stg` (Staging)**:
+   ```sh
+   git checkout stg
+   git pull origin stg
+   git merge dev
+   git push origin stg
+   ```
+4. **Promote `stg` to `main` (Production)**:
+   ```sh
+   git checkout main
+   git pull origin main
+   git merge stg
+   git push origin main
+   git tag -a v1.0.0 -m "Release v1.0.0"
+   git push origin v1.0.0
+   ```
+
+### Environment Configurations
+
+Environment files provide configuration templates for each tier:
+- `.env.dev.example` (or `local.env.example`): Local development defaults (`ENVIRONMENT=dev`, `DEBUG=True`, `LOG_LEVEL=DEBUG`).
+- `.env.stg.example`: Staging environment defaults (`ENVIRONMENT=stg`, `DEBUG=False`, `LOG_LEVEL=INFO`).
+- `.env.prod.example`: Production environment defaults (`ENVIRONMENT=prod`, `DEBUG=False`, `LOG_LEVEL=WARNING`).
+
+The application automatically loads environment settings in this order:
+1. `ENV_FILE` path if set in `os.environ`
+2. `.env.<ENVIRONMENT>` (e.g. `.env.dev`, `.env.stg`, `.env.prod`)
+3. `local.env`
+4. `.env`
+
+Django settings (`src/django_core/settings.py`) adapt dynamically:
+- `DEBUG`: Automatically `True` in `dev`, and `False` in `stg` / `prod`.
+- `ALLOWED_HOSTS`: Set via environment variable (defaults to `*` in `dev`).
+- `SECRET_KEY`: Set via `DJANGO_SECRET_KEY` in environment.
 
 ## TODO
 
@@ -36,6 +106,9 @@ All `python` project should look like this and follow the standard.
 ```
 .
 |-- .devcontainer/               # Where the development containers are defined
+|-- .github/                     # GitHub configurations (CI/CD workflows)
+|   `-- workflows/
+|       `-- ci.yml
 |-- .vscode/                     # Where the vscode related configuration are kept
 |-- data                         # ! Where data is kept. All the data are ignored by default.
 |   `-- example.csv
@@ -48,7 +121,7 @@ All `python` project should look like this and follow the standard.
 |   |-- django_core              # |
 |   |   |-- __init__.py          # | 
 |   |   |-- asgi.py              # | 
-|   |   |-- settings.py          # | 
+|   |   |-- settings.py          # | (environment-aware settings)
 |   |   |-- urls.py              # | 
 |   |   `-- wsgi.py              # | 
 |   |-- django_module            # | 
@@ -60,11 +133,10 @@ All `python` project should look like this and follow the standard.
 |   |   |-- models.py            # | 
 |   |   |-- tests.py             # | 
 |   |   `-- views.py             # | 
-|-- django_manage.py             # | 
-|   |-- project                  # Example modules with Brainlab practice.
-|       |-- __init__.py
+|   `-- project                  # Example modules with Brainlab practice.
+|       |-- __init__.py          # (dynamic multi-environment config loader)
 |       |-- cli.py
-|       |-- logger.py
+|       |-- logger.py            # (environment-aware log level & formatting)
 |       |-- processor
 |       |   |-- __init__.py
 |       |   |-- works.py
@@ -81,10 +153,14 @@ All `python` project should look like this and follow the standard.
 |           `-- templates
 |               |-- base.html
 |               |-- example.html
-|               `-- index.html
+|               `-- index.html   # (environment badge & version indicator)
+|-- .env.dev.example             # Development environment template
+|-- .env.stg.example             # Staging environment template
+|-- .env.prod.example            # Production environment template
 |-- .gitignore
 |-- .python-version
 |-- dev-setup.sh                 # ! run this one when you cloned
+|-- django_manage.py
 |-- LICENSE
 |-- local.env.example            # ! copy and create `local.env`
 |-- pyproject.toml               # python configuration. You have to change this.

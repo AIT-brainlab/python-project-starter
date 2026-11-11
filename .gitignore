@@ -214,6 +214,8 @@ data/*
 !data/example.csv
 models/*
 local.env
+.env.*
+!.env.*.example
 
 .devcontainer/**/data
 

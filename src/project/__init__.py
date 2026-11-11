@@ -1,21 +1,47 @@
 from dotenv import load_dotenv
 from pathlib import Path
+import os
 import sys
 
-_ENVFILE:Path = Path("local.env")
-if(_ENVFILE.exists() == False):
-    print("[Warning] Missing `local.env`. We assume all variables is in `os.environ`", file=sys.stderr)
-load_dotenv(dotenv_path=_ENVFILE)
+# Detect target environment: dev (default), stg, or prod
+_target_env = os.getenv("ENVIRONMENT", "dev").lower()
 
+# Priority order for loading environment file:
+# 1. Explicit ENV_FILE if specified in os.environ
+# 2. .env.<environment> (e.g. .env.dev, .env.stg, .env.prod)
+# 3. local.env (local developer overrides)
+# 4. .env
+_env_candidates: list[Path | None] = [
+    Path(os.environ["ENV_FILE"]) if "ENV_FILE" in os.environ else None,
+    Path(f".env.{_target_env}"),
+    Path("local.env"),
+    Path(".env"),
+]
+
+_loaded_file = None
+for _candidate in _env_candidates:
+    if _candidate and _candidate.exists():
+        load_dotenv(dotenv_path=_candidate)
+        _loaded_file = _candidate
+        break
+
+if not _loaded_file:
+    print(
+        f"[Warning] No env file found (.env.{_target_env}, local.env, or .env). Using existing os.environ",
+        file=sys.stderr,
+    )
+
+# Ensure essential defaults
+os.environ.setdefault("ENVIRONMENT", _target_env)
+os.environ.setdefault("BUILD_VERSION", "0.1.0-dev")
 
 # We do this to load the logger (which will config the logger for this module)
-import project.logger # type: ignore
+import project.logger  # type: ignore
 
 # This is how you do logging
 import logging
+
 logging.debug("App start")
 
 # Start loading modules
-from project.cli import cli # typer: ignore
-
-
+from project.cli import cli  # type: ignore
