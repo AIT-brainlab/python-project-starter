@@ -12,6 +12,13 @@ if [ ! -f "local.env" ] && [ -f "local.env.example" ]; then
     cp local.env.example local.env
 fi
 
+if [ -d ".git" ] && [ ! -f ".git/hooks/pre-commit" ]; then
+    echo "-- Installing data guard pre-commit hook"
+    mkdir -p .git/hooks 2>/dev/null || true
+    printf '#!/bin/sh\nexec bash scripts/check-data-guard.sh --staged\n' > .git/hooks/pre-commit 2>/dev/null || true
+    chmod +x .git/hooks/pre-commit 2>/dev/null || true
+fi
+
 echo "-- Installing Python"
 uv python install
 

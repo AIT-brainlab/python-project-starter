@@ -88,6 +88,12 @@ This repository follows a 3-tier environment and branching model for all project
   bash scripts/deploy.sh prod
   ```
 
+- **`scripts/check.sh`**:
+  Runs local pre-push checks in one command: data guard, `pytest`, and Django configuration check.
+  ```sh
+  bash scripts/check.sh
+  ```
+
 - **`scripts/smoke-test.sh`**:
   Performs post-deployment validation against the running application:
   - Verifies `/health` responds with `status: ok`.
@@ -173,9 +179,11 @@ Django settings (`src/django_core/settings.py`) adapt dynamically:
 |-- notebooks/                   # ! Where jupyter notebook should be stored.
 |   `-- 0-starter.ipynb
 |-- scripts/                     # Deployment, release & verification scripts
+|   |-- check-data-guard.sh      # Sensitive data leak guard
+|   |-- check.sh                 # Local pre-push verification runner
 |   |-- deploy.sh                # Stack deployment with readiness checks & smoke test
+|   |-- release-checks.sh        # Pre-release checks (pytest, Django check, data guard)
 |   |-- release.sh               # Semantic release tagging & multi-env promotion
-|   |-- release-checks.sh        # Pre-release checks (pytest, Django check)
 |   `-- smoke-test.sh            # Post-deployment health, UI, and route validation
 |-- src/                         # ! Where development modules should be.
 |   |-- django_core              # |
