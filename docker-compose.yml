@@ -25,7 +25,22 @@ services:
       dockerfile: Dockerfile
       target: runner
     container_name: ${PROJECT_NAME}-app
-    env_file: .env
+    environment:
+      PROJECT_NAME: ${PROJECT_NAME}
+      ENVIRONMENT: ${ENVIRONMENT}
+      BUILD_VERSION: ${BUILD_VERSION}
+      SOME_API_KEY: ${SOME_API_KEY}
+      LOG_DIR: ${LOG_DIR}
+      LOG_NAME: ${LOG_NAME}
+      LOG_ROTATE_NAME: ${LOG_ROTATE_NAME}
+      LOG_LEVEL: ${LOG_LEVEL}
+      FASTAPI_HOST: "0.0.0.0"
+      FASTAPI_PORT: 8000
+      FASTAPI_WORKERS: ${FASTAPI_WORKERS}
+      REDIS_URL: "redis://:${REDIS_PASSWORD}@redis:6379/0"
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS}
+      DEBUG: ${DEBUG}
     ports:
       - "${FASTAPI_PORT}:8000"
     depends_on:
