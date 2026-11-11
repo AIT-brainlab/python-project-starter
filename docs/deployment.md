@@ -33,7 +33,7 @@ This document describes the deployment architecture, Traefik reverse proxy overl
 
 ## 2. GitHub Environments & Credentials
 
-Configure two environments in GitHub (**Settings > Environments**): `stg` and `production`. Both execute the exact same deployment job in `.github/workflows/cd.yml`.
+Configure two environments in GitHub (**Settings > Environments**): `staging` and `production`. Both execute the exact same deployment job in `.github/workflows/cd.yml`.
 
 | Variable / Secret | Type | Description |
 |---|---|---|

@@ -92,8 +92,8 @@ fi
 describe_env() {
   case "$1" in
     dev) echo "Development (dev branch)" ;;
-    stg) echo "Staging (stg branch)" ;;
-    main) echo "Production (main branch)" ;;
+    stg | staging) echo "Staging (staging environment)" ;;
+    main | production) echo "Production (production environment)" ;;
   esac
 }
 

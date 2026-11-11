@@ -1,6 +1,20 @@
-# python-project-starter
+<div align="center">
 
-Standard Python project template for AIT Brainlab. All Python repositories should adopt this structure and follow the mandated operational standards.
+# 🐍 python-project-starter
+
+**Standard Python Foundation for AIT Brainlab**
+
+[![CI & Docker Build](https://github.com/AIT-brainlab/python-project-starter/actions/workflows/ci.yml/badge.svg)](https://github.com/AIT-brainlab/python-project-starter/actions/workflows/ci.yml)
+[![Deployment](https://github.com/AIT-brainlab/python-project-starter/actions/workflows/cd.yml/badge.svg)](https://github.com/AIT-brainlab/python-project-starter/actions/workflows/cd.yml)
+[![Python Version](https://img.shields.io/badge/python-3.13%2B-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.136%2B-009688.svg?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Django](https://img.shields.io/badge/Django-6.0-092E20.svg?style=flat&logo=django&logoColor=white)](https://www.djangoproject.com/)
+[![Celery](https://img.shields.io/badge/Celery-5.6-37814A.svg?style=flat&logo=celery&logoColor=white)](https://docs.celeryq.dev/)
+[![Package Manager: uv](https://img.shields.io/badge/package%20manager-uv-DE5FE9.svg?style=flat&logo=astral&logoColor=white)](https://github.com/astral-sh/uv)
+[![Container: GHCR](https://img.shields.io/badge/registry-GHCR-2496ED.svg?style=flat&logo=docker&logoColor=white)](https://github.com/AIT-brainlab/python-project-starter/pkgs/container/python-project-starter)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat)](LICENSE)
+
+</div>
 
 ---
 
@@ -8,8 +22,8 @@ Standard Python project template for AIT Brainlab. All Python repositories shoul
 
 1. **Branching Model**:
    - **`dev` (Default)**: Daily development and feature branches fork/merge here. Pushes do not auto-deploy.
-   - **`stg`**: Staging environment. Promoted via PR from `dev`. Merging triggers staging deployment.
-   - **`main`**: Production environment. Promoted via PR from `stg`. Merging triggers production deployment.
+   - **`stg`**: Staging branch. Promoted via PR from `dev`. Merging triggers automated deployment to the `staging` environment.
+   - **`main`**: Production branch. Promoted via PR from `stg`. Merging triggers automated deployment to the `production` environment.
 2. **Release & GHCR**: Releases are cut from `dev` using `bash scripts/release.sh vX.Y.Z`. Pushing the tag triggers CI tests and builds/pushes Docker images to GitHub Container Registry (`ghcr.io`).
 3. **Environment Configuration**: Strictly one [.env.example](.env.example) template. Local setup is `cp .env.example .env`.
 4. **Data Hygiene**: Never commit spreadsheets, database dumps, or raw PII. Enforced locally and in CI via `bash scripts/check-data-guard.sh`.

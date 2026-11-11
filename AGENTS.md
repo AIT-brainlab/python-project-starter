@@ -17,8 +17,8 @@ This document defines the architectural patterns, operational invariants, and wo
     3. Pushes tagged images (`vX.Y.Z`, `vX.Y`, `latest`) to GitHub Container Registry (`ghcr.io`).
     4. Publishes a GitHub Release with auto-generated release notes.
 * **Environment Promotion via Pull Requests:**
-  - **Staging (`stg`):** Promoted by opening and merging a PR from `dev` into `stg` (`bash scripts/release.sh pr stg`). Merging automatically triggers the CD workflow targeting the `stg` environment.
-  - **Production (`main`):** Promoted by opening and merging a PR from `stg` into `main` (`bash scripts/release.sh pr main`). Merging automatically triggers the CD workflow targeting the `production` environment.
+  - **Staging (`stg` branch):** Promoted by opening and merging a PR from `dev` into `stg` (`bash scripts/release.sh pr stg`). Merging automatically triggers the CD workflow targeting the `staging` environment.
+  - **Production (`main` branch):** Promoted by opening and merging a PR from `stg` into `main` (`bash scripts/release.sh pr main`). Merging automatically triggers the CD workflow targeting the `production` environment.
   - Nothing enters `stg` or `main` directly: no unreviewed direct pushes and never a force push.
 
 ---
@@ -26,9 +26,9 @@ This document defines the architectural patterns, operational invariants, and wo
 ## 2. CI/CD & Deployment Symmetry
 
 * **Strict Environment Symmetry:**
-  Both `stg` and `production` run the **exact same deployment job** in [`.github/workflows/cd.yml`](.github/workflows/cd.yml).
+  Both `staging` and `production` run the **exact same deployment job** in [`.github/workflows/cd.yml`](.github/workflows/cd.yml).
 * **The 5 Deployment Variables / Secrets:**
-  Each GitHub Environment (`stg` and `production`) must define exactly:
+  Each GitHub Environment (`staging` and `production`) must define exactly:
   1. `NETBIRD_KEY` or `NETBIRD_SETUP_KEY` (Secret): Setup key for NetBird VPN mesh connection.
   2. `SSH_PRIVATE_KEY` (Secret): SSH private key for host authentication.
   3. `SERVER_HOST` (Variable): Target server IP or NetBird mesh hostname.

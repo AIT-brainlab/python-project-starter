@@ -1,8 +1,8 @@
 name: 🚀 Deployment
 
-# One workflow, two target deployment environments: stg and production.
+# One workflow, two target deployment environments: staging and production.
 # Triggered automatically upon PR merge:
-#   - PR merged into 'stg'  (push to branch stg)  -> deploys to Staging (stg)
+#   - PR merged into 'stg'  (push to branch stg)  -> deploys to Staging (staging)
 #   - PR merged into 'main' (push to branch main) -> deploys to Production (production)
 # Also supports manual trigger via workflow_dispatch.
 #
@@ -21,11 +21,11 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: "Environment to redeploy (stg or production)"
+        description: "Environment to redeploy (staging or production)"
         type: choice
         required: true
         options:
-          - stg
+          - staging
           - production
 
 permissions:
@@ -46,14 +46,14 @@ jobs:
           CHOICE: ${{ inputs.environment }}
         run: |
           case "$EVENT:$REF" in
-            push:refs/heads/stg)  TARGET=stg ;;
+            push:refs/heads/stg)  TARGET=staging ;;
             push:refs/heads/main) TARGET=production ;;
             workflow_dispatch:*)  TARGET="$CHOICE" ;;
             *) echo "::error::No deployment environment configured for event '$EVENT' on '$REF'."; exit 1 ;;
           esac
           case "$TARGET:$REF" in
-            stg:refs/heads/stg|production:refs/heads/main) ;;
-            *) echo "::error::Environment '$TARGET' can only deploy from branch '$TARGET', not from '$REF'."; exit 1 ;;
+            staging:refs/heads/stg|production:refs/heads/main) ;;
+            *) echo "::error::Environment '$TARGET' can only deploy from branch 'stg' (staging) or 'main' (production), not from '$REF'."; exit 1 ;;
           esac
           echo "environment=$TARGET" >> "$GITHUB_OUTPUT"
           echo "Target environment: **$TARGET** (from \`$REF\`, commit \`${GITHUB_SHA::7}\`)" >> "$GITHUB_STEP_SUMMARY"
