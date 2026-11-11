@@ -69,6 +69,9 @@ SCRIPT_PATH="${BASH_SOURCE[0]}"
 ROOT_DIR="$(cd "$(dirname "$SCRIPT_PATH")/.." && pwd -P)"
 cd "$ROOT_DIR"
 
+# Docker Compose path separator for multi-file overlays
+export COMPOSE_PATH_SEPARATOR=:
+
 SEMVER='^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$'
 REPO_SLUG="$(git remote get-url origin 2>/dev/null | sed -E 's#\.git$##; s#^.*github\.com[:/]##' || echo "")"
 ACTIONS_URL="https://github.com/${REPO_SLUG}/actions"

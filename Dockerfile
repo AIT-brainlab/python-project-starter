@@ -64,9 +64,11 @@ FROM python:3.13-slim-bookworm AS runner
 
 WORKDIR /app
 
-# Create non-root system user
+# Create non-root system user and ensure app directory ownership
 RUN groupadd -g 1000 appgroup && \
-    useradd -u 1000 -g appgroup -s /bin/bash -m appuser
+    useradd -u 1000 -g appgroup -s /bin/bash -m appuser && \
+    mkdir -p /app/logs && \
+    chown -R appuser:appgroup /app
 
 # Copy virtual environment and app code from builder
 COPY --from=builder --chown=appuser:appgroup /app/.venv /app/.venv

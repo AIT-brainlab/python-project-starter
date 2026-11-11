@@ -186,6 +186,20 @@ Django settings (`src/django_core/settings.py`) adapt dynamically:
 - `ALLOWED_HOSTS`: Set via environment variable (defaults to `*` in `dev`).
 - `SECRET_KEY`: Set via `DJANGO_SECRET_KEY` in environment.
 
+### Traefik Reverse Proxy Overlay (dev / stg / prod)
+
+In production or staging on shared hosts, services run behind a shared Traefik gateway managing Let's Encrypt SSL/TLS certificates and routing on ports `80`/`443`. In local development, the app maps ports directly to `http://localhost:8000` without requiring Traefik.
+
+This is cleanly decoupled using Docker Compose's native multi-file overlay feature:
+
+- **Local Development**: Keep `COMPOSE_FILE=docker-compose.yml` in `.env`. Only the base stack runs with direct port mapping (`http://127.0.0.1:8000`).
+- **Deployed Environments (`dev`, `stg`, `prod`)**: Set in the server's `.env`:
+  ```ini
+  COMPOSE_FILE=docker-compose.yml:docker-compose.traefik.yml
+  APP_HOSTNAME_DOMAIN=api-stg.ait.ac.th
+  ```
+  Docker Compose automatically merges both files, connects the container to the external `traefik_public` network, and registers domain routing with Traefik dynamically.
+
 ## TODO
 
 - [x] Distribution standard (containerize for development & distribution via multi-stage Docker & root Compose)
@@ -265,7 +279,8 @@ Django settings (`src/django_core/settings.py`) adapt dynamically:
 |-- .gitignore
 |-- .python-version
 |-- django_manage.py
-|-- docker-compose.yml           # Unified stack compose (App + Redis)
+|-- docker-compose.yml           # Unified base stack compose (App + Redis)
+|-- docker-compose.traefik.yml   # Traefik reverse proxy overlay for deployed environments
 |-- Dockerfile                   # Multi-stage Dockerfile (development & production runner)
 |-- LICENSE
 |-- pyproject.toml               # python configuration. You have to change this.

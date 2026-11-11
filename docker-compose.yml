@@ -1,12 +1,12 @@
 # Base compose stack for python-project-starter (Application + Redis)
 # Works identically for local development, docker compose CLI, and remote deployment.
 
-name: ${PROJECT_NAME:-python-project-starter}
+name: ${COMPOSE_PROJECT_NAME:-${PROJECT_NAME:-python-project-starter}}
 
 services:
   redis:
     image: redis:7-alpine
-    container_name: ${PROJECT_NAME:-python-project-starter}-redis
+    container_name: ${COMPOSE_PROJECT_NAME:-${PROJECT_NAME:-python-project-starter}}-redis
     command: redis-server --save 20 1 --loglevel warning --requirepass ${REDIS_PASSWORD:-redispassword}
     ports:
       - "6379:6379"
@@ -24,7 +24,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: runner
-    container_name: ${PROJECT_NAME:-python-project-starter}-app
+    container_name: ${COMPOSE_PROJECT_NAME:-${PROJECT_NAME:-python-project-starter}}-app
     env_file:
       - path: ${ENV_FILE:-.env}
         required: false
