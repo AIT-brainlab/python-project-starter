@@ -1,448 +1,106 @@
 # python-project-starter
 
-This repository is a define practices for AIT Brainlab to follow.
-All `python` project should look like this and follow the standard.
+Standard Python project template for AIT Brainlab. All Python repositories should adopt this structure and follow the mandated operational standards.
 
-- [python-project-starter](#python-project-starter)
-  - [Implemented standard](#implemented-standard)
-  - [Branching & Environment Strategy (dev / stg / prod)](#branching--environment-strategy-dev--stg--prod)
-    - [Branch Hierarchy](#branch-hierarchy)
-    - [Promotion Workflow](#promotion-workflow)
-    - [Deployment & Automation Scripts (scripts/)](#deployment--automation-scripts-scripts)
-    - [Environment Configurations](#environment-configurations)
-  - [TODO](#todo)
-  - [Project structure](#project-structure)
-  - [How to use this](#how-to-use-this)
-    - [Change project name](#change-project-name)
-    - [Setup development](#setup-development)
-    - [Command Script](#command-script)
-    - [Install command script completion](#install-command-script-completion)
-  - [Django Setup](#django-setup)
-    - [Start a new app module](#start-a-new-app-module)
-  - [License](#license)
+---
 
-## Implemented standard
+## Mandated Standards
 
-1. Project structure
-2. logging system
-3. command line (with `Typer`)
-4. basic web server and REST API (`with FastAPI and Jinja`)
-5. processor module with celery support (options for those who may not need `pub-sub/queue`)
-6. Define how Django should be implemented.
-7. Branching and environment lifecycle (`dev`, `stg`, `prod` / `main`).
+1. **Branching Model**:
+   - **`dev` (Default)**: Daily development and feature branches fork/merge here. Pushes do not auto-deploy.
+   - **`stg`**: Staging environment. Promoted via PR from `dev`. Merging triggers staging deployment.
+   - **`main`**: Production environment. Promoted via PR from `stg`. Merging triggers production deployment.
+2. **Release & GHCR**: Releases are cut from `dev` using `bash scripts/release.sh vX.Y.Z`. Pushing the tag triggers CI tests and builds/pushes Docker images to GitHub Container Registry (`ghcr.io`).
+3. **Environment Configuration**: Strictly one [.env.example](.env.example) template. Local setup is `cp .env.example .env`.
+4. **Data Hygiene**: Never commit spreadsheets, database dumps, or raw PII. Enforced locally and in CI via `bash scripts/check-data-guard.sh`.
 
-## Branching & Environment Strategy (dev / stg / prod)
+---
 
-This repository follows a 3-tier environment and branching model for all projects at AIT Brainlab. The **`dev`** branch serves as the default main working branch.
+## Quick Start
 
-### Branch Hierarchy
+### 1. Rename Project
+When initializing a new repository from this template:
+1. Update `project.name` in [`pyproject.toml`](pyproject.toml)
+2. Update `PROJECT_NAME` in [`.env.example`](.env.example)
 
-| Environment | Branch | Role | Default / Working Branch | Debug |
-|---|---|---|---|---|
-| **Development** | `dev` | Active day-to-day development, feature PR integration | **Yes (Default)** | `True` |
-| **Staging** | `stg` | Pre-production QA, integration testing, staging release | No | `False` |
-| **Production** | `main` | Production deployment, stable releases, version tags | No | `False` |
+### 2. Setup Environment
+```bash
+# 1. Create local environment file
+cp .env.example .env
 
-- **`dev` (Default)**: All feature branches fork off `dev` and merge back into `dev`.
-- **`stg`**: Merged from `dev` when preparing a release candidate for QA/testing.
-- **`main` (Production)**: Merged from `stg` after validation. Corresponds to production deployments (`prod`). Release tags (e.g. `v1.0.0`) are created on `main`.
-
-### Promotion & Release Workflow
-
+# 2. Install dependencies with uv
+uv sync
 ```
-[feature/xxx] ---> [dev] (tag vX.Y.Z -> CI builds & pushes to GHCR)
-                    |
-                    v (PR merge)
-                  [stg] (CD deploys to Staging)
-                    |
-                    v (PR merge)
-                  [main] (CD deploys to Production)
+*(VS Code Dev Containers are also supported via `.devcontainer/`)*.
+
+### 3. Run Locally
+```bash
+# Run CLI
+uv run python-project-starter --help
+
+# Run Web Server (FastAPI)
+uv run python-project-starter web
+# Open: http://localhost:8000
+
+# Run Background Worker (Celery + Redis)
+docker compose up -d redis
+uv run python-project-starter celery worker
 ```
 
-1. **Feature development on `dev`**:
-   ```sh
-   git checkout dev
-   git pull origin dev
-   git checkout -b feature/my-feature
-   # ... implement changes ...
-   git push origin feature/my-feature
-   ```
-   Submit a PR targeting `dev`. Developers merge and update `dev`. CI runs manually by default on dev.
+---
 
-2. **Cut a Release & Publish Docker Image to GHCR**:
-   When features on `dev` are ready for release, execute the release script:
-   ```sh
-   bash scripts/release.sh v0.1.0
-   ```
-   This script:
-   - Runs local pre-flight checks (`scripts/release-checks.sh`: data guard, pytest, Django check).
-   - Verifies the working tree is clean and synced with `origin/dev`.
-   - Creates annotated tag `v0.1.0` on `dev` and pushes to `origin`.
-   - **Triggers CI & GHCR Build**: Pushing tag `v*` triggers `.github/workflows/ci.yml`, running tests, building the multi-stage Docker runner image, and pushing `ghcr.io/<org>/<repo>:v0.1.0` and `:latest`.
-   - Creates a GitHub Release via `gh release create`.
+## Operational Scripts (`scripts/`)
 
-3. **Deploy to Staging (`stg`) via PR**:
-   Promote code to staging by opening a PR from `dev` into `stg`:
-   ```sh
-   bash scripts/release.sh pr stg
-   # Or using gh CLI directly:
-   gh pr create --base stg --head dev --title "Release v0.1.0 -> Staging"
-   ```
-   **Merging this PR into `stg` automatically triggers the CD pipeline (`.github/workflows/cd.yml`)**, deploying the release to the Staging server and running post-deployment smoke tests.
+| Script | Purpose | Usage |
+|---|---|---|
+| **[`check.sh`](scripts/check.sh)** | Pre-push verification (data guard, tests, Django check) | `bash scripts/check.sh` |
+| **[`release.sh`](scripts/release.sh)** | Cut release tag, push to origin, build GHCR image | `bash scripts/release.sh v0.1.0` |
+| **[`release.sh pr`](scripts/release.sh)** | Open promotion PR to `stg` or `main` | `bash scripts/release.sh pr stg` / `pr main` |
+| **[`deploy.sh`](scripts/deploy.sh)** | Deploy stack (Docker Compose or local `uv`) with smoke tests | `bash scripts/deploy.sh dev` |
+| **[`smoke-test.sh`](scripts/smoke-test.sh)** | End-to-end post-deployment health & route checks | `bash scripts/smoke-test.sh http://localhost:8000` |
+| **[`check-data-guard.sh`](scripts/check-data-guard.sh)** | Verify sensitive data guard and file hygiene | `bash scripts/check-data-guard.sh` |
 
-4. **Deploy to Production (`main`) via PR**:
-   After testing and verifying the staging deployment, open a PR from `stg` into `main`:
-   ```sh
-   bash scripts/release.sh pr main
-   # Or using gh CLI directly:
-   gh pr create --base main --head stg --title "Release v0.1.0 -> Production"
-   ```
-   **Merging this PR into `main` automatically triggers the CD pipeline (`.github/workflows/cd.yml`)**, deploying the release to the Production server with automatic rollback if smoke tests fail.
+---
 
-*(Direct branch fast-forwarding is also supported if direct push is enabled: `bash scripts/release.sh promote stg` and `bash scripts/release.sh promote main`)*.
+## Detailed Documentation (`docs/`)
 
-### Deployment & Automation Scripts (`scripts/`)
+Technical details and component guides are organized in [`docs/`](docs/):
 
-- **`scripts/deploy.sh`**:
-  Deploys or starts the application stack for the target environment (`dev`, `stg`, or `prod`).
-  - Ensures required `.env` file exists (auto-creating from template if missing).
-  - Starts services (Docker Compose or local `uv` environment).
-  - Polls `/health` until the service is ready.
-  - Automatically executes post-deployment smoke tests.
-  ```sh
-  bash scripts/deploy.sh dev
-  bash scripts/deploy.sh stg
-  bash scripts/deploy.sh prod
-  ```
+- **[Django Modular Apps](docs/django.md)**: Reusable app architecture, `django_manage.py`, migrations, and settings.
+- **[FastAPI & Web Service](docs/fastapi-web.md)**: REST endpoints, Jinja2 templates, `/health` check, and routing.
+- **[Celery & Background Tasks](docs/celery-processor.md)**: Asynchronous task queuing, Redis configuration, and process supervision.
+- **[CI/CD & Deployment Guide](docs/deployment.md)**: Multi-environment deployment pipeline (`cd.yml`), NetBird VPN mesh, Traefik reverse proxy overlay, and automated rollbacks.
+- **[AI Agent Invariants (`AGENTS.md`)](AGENTS.md)**: Architectural invariants and guidelines for AI coding assistants.
 
-- **`scripts/check.sh`**:
-  Runs local pre-push checks in one command: data guard, `pytest`, and Django configuration check.
-  ```sh
-  bash scripts/check.sh
-  ```
+---
 
-- **`scripts/smoke-test.sh`**:
-  Performs post-deployment validation against the running application:
-  - Verifies `/health` responds with `status: ok`.
-  - Verifies `/` renders the index page and template context.
-  - Verifies `/example/{id}` renders dynamic parameters.
-  - Executes Django system integrity checks.
-  ```sh
-  bash scripts/smoke-test.sh http://127.0.0.1:8000
-  ```
-
-- **`scripts/release.sh`**:
-  Manages semantic releases and immutable fast-forward promotions:
-  - `bash scripts/release.sh vX.Y.Z`: Runs release checks, tags `origin/dev`, pushes tag, and publishes GitHub Release.
-  - `bash scripts/release.sh promote stg`: Fast-forwards `stg` branch to the verified release tag.
-  - `bash scripts/release.sh promote main`: Fast-forwards `main` branch to the staging-tested release tag.
-
-- **`scripts/release-checks.sh`**:
-  Repository-specific pre-release checks sourced by `release.sh` (data guard, unit tests with `uv run pytest`, Django checks).
-
-- **`scripts/check-data-guard.sh`**:
-  Validates repository hygiene and prevents sensitive data leaks (spreadsheets, database dumps, personal data in SQL/CSV, CRLF endings, or files > 512 KB).
-
-### GitHub Actions CI/CD Pipeline (`.github/`)
-
-- **Continuous Integration & Docker Build ([`.github/workflows/ci.yml`](.github/workflows/ci.yml))**:
-  - **Triggers**: Tag push (`v*`) or manual trigger (`workflow_dispatch`).
-  - Runs unit tests via `uv run pytest`.
-  - Builds the production container using the `runner` target in multi-stage `Dockerfile`.
-  - Pushes image with tags (`vX.Y.Z`, `vX.Y`, `latest`) to GitHub Container Registry (`ghcr.io/<org>/<repo>`).
-- **Continuous Deployment ([`.github/workflows/cd.yml`](.github/workflows/cd.yml))**:
-  - **Triggers**: PR merge into `stg` (deploys to Staging) or `main` (deploys to Production), or manual trigger (`workflow_dispatch`).
-  - **Environment Symmetry**: Staging (`stg`) and Production (`production`) execute the exact same deployment and rollback job.
-  - **Automatic Rollback**: If deployment or smoke tests fail, the server immediately rolls back to the previous verified stable commit (`STABLE_REV`) with zero manual intervention.
-  - **Environment Configuration**: Set up two GitHub Environments under **Settings > Environments**: `stg` and `production`. Each requires the following 5 credentials:
-    | Variable / Secret | Type | Description |
-    |---|---|---|
-    | `NETBIRD_KEY` / `NETBIRD_SETUP_KEY` | Secret | NetBird mesh VPN setup key for runner access |
-    | `SSH_PRIVATE_KEY` | Secret | SSH private key to authenticate against deployment server |
-    | `SERVER_HOST` | Variable | Target server IP or NetBird hostname |
-    | `SERVER_USER` | Variable | Target server SSH user |
-    | `SERVER_PROJECT_DIR` | Variable | Target directory on server (e.g. `/opt/python-project-starter`) |
-    | *`NETBIRD_MANAGEMENT_URL`* | Variable | *(Optional)* Custom NetBird management URL if self-hosted |
-- **Composite Actions ([`.github/actions/`](.github/actions/))**:
-  - `preflight-check`: Validates deployment credentials and environment configuration.
-  - `netbird-connect`: Connects the GitHub runner to the NetBird VPN mesh network.
-  - `ssh-setup`: Configures SSH keys and known hosts.
-  - `ssh-exec`: Executes atomic deployment and rollback commands over SSH.
-
-### Environment Configurations
-
-Configuration is managed via `.env` (copied from `.env.example`):
-- **Development** (`ENVIRONMENT=dev`): `DEBUG=True`, `LOG_LEVEL=DEBUG`, local database and Redis.
-- **Staging** (`ENVIRONMENT=stg`): `DEBUG=False`, `LOG_LEVEL=INFO`, staging hosts.
-- **Production** (`ENVIRONMENT=prod`): `DEBUG=False`, `LOG_LEVEL=WARNING`, production hardening.
-
-The application loads configuration directly from `.env` (copied from `.env.example`).
-
-Django settings (`src/django_core/settings.py`) adapt dynamically:
-- `DEBUG`: Automatically `True` in `dev`, and `False` in `stg` / `prod`.
-- `ALLOWED_HOSTS`: Set via environment variable (defaults to `*` in `dev`).
-- `SECRET_KEY`: Set via `DJANGO_SECRET_KEY` in environment.
-
-### Traefik Reverse Proxy Overlay (dev / stg / prod)
-
-In production or staging on shared hosts, services run behind a shared Traefik gateway managing Let's Encrypt SSL/TLS certificates and routing on ports `80`/`443`. In local development, the app maps ports directly to `http://localhost:8000` without requiring Traefik.
-
-This is cleanly decoupled using Docker Compose's native multi-file overlay feature:
-
-- **Local Development**: Keep `COMPOSE_FILE=docker-compose.yml` in `.env`. Only the base stack runs with direct port mapping (`http://127.0.0.1:8000`).
-- **Deployed Environments (`dev`, `stg`, `prod`)**: Set in the server's `.env`:
-  ```ini
-  COMPOSE_FILE=docker-compose.yml:docker-compose.traefik.yml
-  APP_HOSTNAME_DOMAIN=api-stg.ait.ac.th
-  ```
-  Docker Compose automatically merges both files, connects the container to the external `traefik_public` network, and registers domain routing with Traefik dynamically.
-
-## TODO
-
-- [x] Distribution standard (containerize for development & distribution via multi-stage Docker & root Compose)
-- [ ] Chat/LLM standard (interface, prompt, mcp)
-- [ ] tools/framework (some other github repo)
-
-## Project structure
+## Project Structure
 
 ```
 .
-|-- .devcontainer/               # VS Code Dev Container (devcontainer.json & dev compose overlay)
-|   |-- devcontainer.json
-|   `-- docker-compose.dev.yml
-|-- .github/                     # GitHub configurations (CI/CD workflows & actions)
-|   |-- actions/                 # Reusable composite deployment actions
-|   |   |-- netbird-connect/     # Connect runner to NetBird VPN mesh
-|   |   |-- preflight-check/     # Validate deployment secrets & variables
-|   |   |-- ssh-exec/            # Execute deployment & rollback over SSH
-|   |   `-- ssh-setup/           # Setup SSH authentication & known_hosts
-|   `-- workflows/
-|       |-- cd.yml               # Multi-environment CD deployment pipeline
-|       `-- ci.yml               # Continuous integration test runner
-|-- .vscode/                     # Where the vscode related configuration are kept
-|-- data                         # ! Where data is kept. All the data are ignored by default.
-|   `-- example.csv
-|-- docs/                        # ! Where document (design, paper, any for reference) is kept. 
-|-- logs/                        # Where logs are kept.
-|-- models/                      # ! Where models (weight) should be stored.
-|-- notebooks/                   # ! Where jupyter notebook should be stored.
-|   `-- 0-starter.ipynb
-|-- scripts/                     # Deployment, release & verification scripts
-|   |-- check-data-guard.sh      # Sensitive data leak guard
-|   |-- check.sh                 # Local pre-push verification runner
-|   |-- deploy.sh                # Stack deployment with readiness checks & smoke test
-|   |-- release-checks.sh        # Pre-release checks (pytest, Django check, data guard)
-|   |-- release.sh               # Semantic release tagging & multi-env promotion
-|   `-- smoke-test.sh            # Post-deployment health, UI, and route validation
-|-- src/                         # ! Where development modules should be.
-|   |-- django_core              # |
-|   |   |-- __init__.py          # | 
-|   |   |-- asgi.py              # | 
-|   |   |-- settings.py          # | (environment-aware settings)
-|   |   |-- urls.py              # | 
-|   |   `-- wsgi.py              # | 
-|   |-- django_module            # | 
-|   |   |-- __init__.py          # |--- These are `Django` related structure
-|   |   |-- admin.py             # | 
-|   |   |-- apps.py              # | 
-|   |   |-- migrations           # | 
-|   |   |   `-- __init__.py      # | 
-|   |   |-- models.py            # | 
-|   |   |-- tests.py             # | 
-|   |   `-- views.py             # | 
-|   `-- project                  # Example modules with Brainlab practice.
-|       |-- __init__.py          # (dynamic multi-environment config loader)
-|       |-- cli.py
-|       |-- logger.py            # (environment-aware log level & formatting)
-|       |-- processor
-|       |   |-- __init__.py
-|       |   |-- works.py
-|       |   `-- works_test.py
-|       |-- processor_celery
-|       |   |-- __init__.py
-|       |   |-- cli.py
-|       |   |-- works.py
-|       |   `-- works_test.py
-|       `-- web
-|           |-- __init__.py
-|           |-- py.typed
-|           |-- router.py
-|           `-- templates
-|               |-- base.html
-|               |-- example.html
-|               `-- index.html   # (environment badge & version indicator)
-|-- .dockerignore
-|-- .env.example                 # Environment configuration template (copy to .env)
-|-- .gitignore
-|-- .python-version
-|-- django_manage.py
-|-- docker-compose.yml           # Unified base stack compose (App + Redis)
-|-- docker-compose.traefik.yml   # Traefik reverse proxy overlay for deployed environments
-|-- Dockerfile                   # Multi-stage Dockerfile (development & production runner)
-|-- LICENSE
-|-- pyproject.toml               # python configuration. You have to change this.
-|-- README.md
-|-- supervisord.conf             # ! if you want to run multiple processes at the same time, learn this one
-`-- uv.lock
+├── .devcontainer/               # VS Code Dev Container configuration
+├── .github/                     # GitHub Actions CI/CD workflows and composite actions
+├── data/                        # Local data directory (ignored by git)
+├── docs/                        # In-depth module and deployment documentation
+├── logs/                        # Application logs (ignored by git)
+├── models/                      # Model checkpoints and weights (ignored by git)
+├── notebooks/                   # Jupyter notebooks (0-starter.ipynb)
+├── scripts/                     # Automation, release, and deployment scripts
+├── src/
+│   ├── django_core/             # Django dev harness and routing
+│   ├── django_module/           # Reusable Django module example
+│   └── project/                 # Core FastAPI, CLI, logging, and Celery modules
+├── .env.example                 # Single environment configuration template
+├── AGENTS.md                    # Operational guidelines for AI agents
+├── django_manage.py             # Django entrypoint script
+├── docker-compose.yml           # Unified stack compose (App + Redis)
+├── docker-compose.traefik.yml   # Traefik overlay for deployed environments
+├── Dockerfile                   # Multi-stage production container build
+├── pyproject.toml               # Project dependencies and packaging
+└── README.md
 ```
 
-## How to use this
-
-There are three main tools we use to manage the project.
-
-1. `uv`: python project manager
-2. devcontainer: where we spin development environment
-3. `mypy`: a complier-ish that will check if your code meet certain standard
-
-### Change project name
-
-We intend that this repository will be used as a template for `python` development.
-There are a lot of places where we have to add a `python-project-start` string to make this run properly.
-You should change this name to follow your project/module name.
-
-To change the name, you start from your project/repository name.
-
-```sh
-/some/path/to/your/repository/<project_name>
-```
-
-Let's say we will create another project based on this template with name `myproject`
-
-```sh
-/some/path/path/to/your/repository/myproject
-```
-
-The places where you need to change the name are:
-
-1. `pyproject.toml`: parameter `project.name`
-2. `.env.example`: parameter `PROJECT_NAME`
-(Docker Compose automatically uses `PROJECT_NAME` from your `.env` file)
-
-This should be enough for you to start developing.
-
-### Setup development
-
-1. (optional) spin up devcontainer in vscode (<kbd>cmd/ctrl</kbd> + <kbd>shift</kbd> + <kbd>P</kbd> and choose `Dev Containers: Rebuild and reopen in Container`)
-2. Create your environment configuration:
-   ```sh
-   cp .env.example .env
-   ```
-3. Install dependencies and set up environment using `uv`:
-   ```sh
-   uv sync
-   ```
-
-### Command Script
-
-The project has a command script.
-By default it uses `python-project-starter`.
-
-```sh
-uv run python-project-starter --help
-```
-
-If you want to change this command name, you have to configure the following
-
-1. `pyproject.toml`: under section `project.scripts`, change the command name
-2. `supervisord.conf`: This use your command name to spawn processes
-
-### Install command script completion
-
-Command line solution uses `Typer` library which has completion capabitily.
-After you write the command name, you can use <kbd>tab</kbd> to get suggestion/completion.
-
-This functionality is automatically set for if you use `.devcontainer`.
-For local user, you will need to run this manually (because I don't know if you want this install in your computer).
-
-```sh
-uv run <command_name> --install-completion
-```
-
-To remove this, get the intallation path from the command and delete the file manually.
-
-## Django Setup
-
-Let's agree that we should develop a `Django app module` not an entire Django website.
-In this AIT Brainlab best practice, the folders that are related to the Django are
-
-```sh
-...
-|-- src/                         
-|   |-- django_core              # |
-|   |   |-- __init__.py          # | 
-|   |   |-- asgi.py              # | 
-|   |   |-- settings.py          # | 
-|   |   |-- urls.py              # | 
-|   |   `-- wsgi.py              # | 
-|   |-- django_module            # | 
-|   |   |-- __init__.py          # |--- These are `Django` related structure
-|   |   |-- admin.py             # | 
-|   |   |-- apps.py              # | 
-|   |   |-- migrations           # | 
-|   |   |   `-- __init__.py      # | 
-|   |   |-- models.py            # | 
-|   |   |-- tests.py             # | 
-|   |   `-- views.py             # | 
-|-- django_manage.py             # | 
-...
-```
-
-The provided `django_core` is configuration for the development purposes.
-The production may have different configuration.
-Thus, your main development should be a modular module that is compatible with any django project.
-
-To access typical django operation, you use
-
-```sh
-uv run django_manage.py
-```
-
-For example, if you want to start the development server, you use
-
-```sh
-uv run django_manage.py runserver 0.0.0.0:8000
-```
-
-### Start a new app module
-
-Generate a django app boilerplate
-
-```sh
-#                       startapp <app_name> <app_folder>
-uv run django_manage.py startapp myapp src/myapp
-```
-
-Then, add the module to the development project settings (`/src/django_core/settings.py`)
-
-```py
-...
-# Application definition
-
-INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'myapp'  # <---- Add here
-]
-...
-```
-
-Finally, add the routing in `/src/django_core/urls.py`
-
-```py
-...
-from django.contrib import admin
-from django.urls import include, path
-
-urlpatterns = [
-    path('admin/', admin.site.urls),
-    path("myapp/", include("myapp.urls")),  #<---- Add here
-]
-...
-```
+---
 
 ## License
 
