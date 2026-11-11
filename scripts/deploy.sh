@@ -61,9 +61,9 @@ APP_PORT="${APP_PORT:-8000}"
 
 # 2. Deploy via Docker Compose if docker-compose file is present
 if [[ -f "docker-compose.yml" ]] && command -v docker >/dev/null 2>&1; then
-  log_info "Docker Compose detected. Building and starting services..."
-  docker compose build
-  docker compose up -d --remove-orphans
+  log_info "Docker Compose detected. Building and starting services with ${ENV_FILE}..."
+  ENV_FILE="$ENV_FILE" docker compose build
+  ENV_FILE="$ENV_FILE" docker compose up -d --remove-orphans
   DEPLOY_MODE="compose"
 elif command -v uv >/dev/null 2>&1; then
   log_info "Running via local Python environment with uv..."

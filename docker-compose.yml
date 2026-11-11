@@ -1,0 +1,49 @@
+# Base compose stack for python-project-starter (Application + Redis)
+# Works identically for local development, docker compose CLI, and remote deployment.
+
+name: ${PROJECT_NAME:-python-project-starter}
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: ${PROJECT_NAME:-python-project-starter}-redis
+    command: redis-server --save 20 1 --loglevel warning --requirepass ${REDIS_PASSWORD:-redispassword}
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redispassword}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    container_name: ${PROJECT_NAME:-python-project-starter}-app
+    env_file:
+      - path: ${ENV_FILE:-local.env}
+        required: false
+    environment:
+      FASTAPI_HOST: "0.0.0.0"
+      FASTAPI_PORT: 8000
+      REDIS_URL: "redis://:${REDIS_PASSWORD:-redispassword}@redis:6379/0"
+    ports:
+      - "${FASTAPI_PORT:-8000}:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c 'import urllib.request; urllib.request.urlopen(\"http://127.0.0.1:8000/health\")'"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+volumes:
+  redis_data:

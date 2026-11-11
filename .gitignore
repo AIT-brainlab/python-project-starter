@@ -217,7 +217,5 @@ local.env
 .env.*
 !.env.*.example
 
-.devcontainer/**/data
-
-!.devcontainer/dev/.env
+docker-compose.override.yml
 !.keeps

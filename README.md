@@ -152,7 +152,7 @@ Django settings (`src/django_core/settings.py`) adapt dynamically:
 
 ## TODO
 
-- [ ] Distribution standard (containerize for distribution)
+- [x] Distribution standard (containerize for development & distribution via multi-stage Docker & root Compose)
 - [ ] Chat/LLM standard (interface, prompt, mcp)
 - [ ] tools/framework (some other github repo)
 
@@ -160,7 +160,9 @@ Django settings (`src/django_core/settings.py`) adapt dynamically:
 
 ```
 .
-|-- .devcontainer/               # Where the development containers are defined
+|-- .devcontainer/               # VS Code Dev Container (devcontainer.json & dev compose overlay)
+|   |-- devcontainer.json
+|   `-- docker-compose.dev.yml
 |-- .github/                     # GitHub configurations (CI/CD workflows & actions)
 |   |-- actions/                 # Reusable composite deployment actions
 |   |   |-- netbird-connect/     # Connect runner to NetBird VPN mesh
@@ -222,6 +224,7 @@ Django settings (`src/django_core/settings.py`) adapt dynamically:
 |               |-- base.html
 |               |-- example.html
 |               `-- index.html   # (environment badge & version indicator)
+|-- .dockerignore
 |-- .env.dev.example             # Development environment template
 |-- .env.stg.example             # Staging environment template
 |-- .env.prod.example            # Production environment template
@@ -229,6 +232,8 @@ Django settings (`src/django_core/settings.py`) adapt dynamically:
 |-- .python-version
 |-- dev-setup.sh                 # ! run this one when you cloned
 |-- django_manage.py
+|-- docker-compose.yml           # Unified stack compose (App + Redis)
+|-- Dockerfile                   # Multi-stage Dockerfile (development & production runner)
 |-- LICENSE
 |-- local.env.example            # ! copy and create `local.env`
 |-- pyproject.toml               # python configuration. You have to change this.
@@ -263,11 +268,12 @@ Let's say we will create another project based on this template with name `mypro
 /some/path/path/to/your/repository/myproject
 ```
 
-The place where you need to change the name are
+The places where you need to change the name are:
 
-1. `/.devcontainer/dev/.env`: parameter `PROJECT_NAME`
-2. `pyproject.toml`: parameter `project.name`
-3. `local.env.example`: parameter `PROJECT_NAME`
+1. `pyproject.toml`: parameter `project.name`
+2. `.env.dev.example` / `local.env.example`: parameter `PROJECT_NAME`
+3. `.env.stg.example` / `.env.prod.example`: parameter `PROJECT_NAME`
+(Docker Compose automatically uses `PROJECT_NAME` from your `.env` file)
 
 This should be enough for you to start developing.
 
