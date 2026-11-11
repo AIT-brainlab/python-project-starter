@@ -1,19 +1,19 @@
 # Base compose stack for python-project-starter (Application + Redis)
 # Works identically for local development, docker compose CLI, and remote deployment.
 
-name: ${PROJECT_NAME:-python-project-starter}
+name: ${PROJECT_NAME}
 
 services:
   redis:
     image: redis:7-alpine
-    container_name: ${PROJECT_NAME:-python-project-starter}-redis
-    command: redis-server --save 20 1 --loglevel warning --requirepass ${REDIS_PASSWORD:-redispassword}
+    container_name: ${PROJECT_NAME}-redis
+    command: redis-server --save 20 1 --loglevel warning --requirepass ${REDIS_PASSWORD}
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT}:6379"
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redispassword}", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -24,16 +24,10 @@ services:
       context: .
       dockerfile: Dockerfile
       target: runner
-    container_name: ${PROJECT_NAME:-python-project-starter}-app
-    env_file:
-      - path: ${ENV_FILE:-.env}
-        required: false
-    environment:
-      FASTAPI_HOST: "0.0.0.0"
-      FASTAPI_PORT: 8000
-      REDIS_URL: "redis://:${REDIS_PASSWORD:-redispassword}@redis:6379/0"
+    container_name: ${PROJECT_NAME}-app
+    env_file: .env
     ports:
-      - "${FASTAPI_PORT:-8000}:8000"
+      - "${FASTAPI_PORT}:8000"
     depends_on:
       redis:
         condition: service_healthy

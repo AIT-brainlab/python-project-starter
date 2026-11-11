@@ -29,36 +29,27 @@ TARGET_ENV="$(echo "$TARGET_ENV" | tr '[:upper:]' '[:lower:]')"
 
 log_info "Starting deployment for target environment: ${BOLD}${TARGET_ENV}${NC}..."
 
-# 1. Ensure appropriate environment file exists
-ENV_FILE=""
-if [[ -f ".env.${TARGET_ENV}" ]]; then
-  ENV_FILE=".env.${TARGET_ENV}"
-elif [[ -f ".env" ]]; then
-  ENV_FILE=".env"
-else
-  # Auto-create from .env.example
+# 1. Ensure .env file exists
+if [[ ! -f ".env" ]]; then
   if [[ -f ".env.example" ]]; then
     log_warn "No .env file found. Creating .env from .env.example..."
     cp ".env.example" ".env"
-    ENV_FILE=".env"
   else
     log_err "Missing .env file and .env.example not found. Aborting."
     exit 1
   fi
 fi
 
-log_info "Using environment file: ${ENV_FILE}"
-
 # Load port configuration
-APP_PORT="$(grep -E '^FASTAPI_PORT=' "$ENV_FILE" | cut -d '=' -f2 | tr -d ' "\r' || echo "")"
+APP_PORT="$(grep -E '^FASTAPI_PORT=' .env | cut -d '=' -f2 | tr -d ' "\r' || echo "")"
 APP_PORT="${APP_PORT:-8000}"
 
 # 2. Deploy via Docker Compose if docker-compose file is present
 if [[ -f "docker-compose.yml" ]] && command -v docker >/dev/null 2>&1; then
-  log_info "Docker Compose detected. Building and starting services with ${ENV_FILE}..."
+  log_info "Docker Compose detected. Building and starting services..."
   export COMPOSE_PATH_SEPARATOR=:
-  ENV_FILE="$ENV_FILE" docker compose build
-  ENV_FILE="$ENV_FILE" docker compose up -d --remove-orphans
+  docker compose build
+  docker compose up -d --remove-orphans
   DEPLOY_MODE="compose"
 elif command -v uv >/dev/null 2>&1; then
   log_info "Running via local Python environment with uv..."

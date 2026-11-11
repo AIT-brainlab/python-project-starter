@@ -176,10 +176,7 @@ Configuration is managed via `.env` (copied from `.env.example`):
 - **Staging** (`ENVIRONMENT=stg`): `DEBUG=False`, `LOG_LEVEL=INFO`, staging hosts.
 - **Production** (`ENVIRONMENT=prod`): `DEBUG=False`, `LOG_LEVEL=WARNING`, production hardening.
 
-The application automatically loads environment settings in this order:
-1. `ENV_FILE` path if set in `os.environ`
-2. `.env.<ENVIRONMENT>` (e.g. `.env.stg`, `.env.prod`)
-3. `.env` (copied from `.env.example`)
+The application loads configuration directly from `.env` (copied from `.env.example`).
 
 Django settings (`src/django_core/settings.py`) adapt dynamically:
 - `DEBUG`: Automatically `True` in `dev`, and `False` in `stg` / `prod`.
