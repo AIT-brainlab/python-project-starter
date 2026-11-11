@@ -9,13 +9,13 @@ _target_env = os.getenv("ENVIRONMENT", "dev").lower()
 # Priority order for loading environment file:
 # 1. Explicit ENV_FILE if specified in os.environ
 # 2. .env.<environment> (e.g. .env.dev, .env.stg, .env.prod)
-# 3. local.env (local developer overrides)
-# 4. .env
+# 3. .env (standard: copied from .env.example)
+# 4. local.env (legacy fallback)
 _env_candidates: list[Path | None] = [
     Path(os.environ["ENV_FILE"]) if "ENV_FILE" in os.environ else None,
     Path(f".env.{_target_env}"),
-    Path("local.env"),
     Path(".env"),
+    Path("local.env"),
 ]
 
 _loaded_file = None
@@ -27,7 +27,7 @@ for _candidate in _env_candidates:
 
 if not _loaded_file:
     print(
-        f"[Warning] No env file found (.env.{_target_env}, local.env, or .env). Using existing os.environ",
+        f"[Warning] No env file found (.env or .env.{_target_env}). Please copy .env.example to .env",
         file=sys.stderr,
     )
 

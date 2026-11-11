@@ -26,7 +26,9 @@ services:
       target: runner
     container_name: ${PROJECT_NAME:-python-project-starter}-app
     env_file:
-      - path: ${ENV_FILE:-local.env}
+      - path: ${ENV_FILE:-.env}
+        required: false
+      - path: local.env
         required: false
     environment:
       FASTAPI_HOST: "0.0.0.0"

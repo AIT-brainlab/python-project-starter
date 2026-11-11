@@ -7,9 +7,9 @@ if [ "$IS_DEVCONTAINER" = "True" ]; then
     sudo chown 1000:1000 .uv_cache
 fi
 
-if [ ! -f "local.env" ] && [ -f "local.env.example" ]; then
-    echo "-- Creating local.env from local.env.example"
-    cp local.env.example local.env
+if [ ! -f ".env" ] && [ -f ".env.example" ]; then
+    echo "-- Creating .env from .env.example"
+    cp .env.example .env
 fi
 
 if [ -d ".git" ] && [ ! -f ".git/hooks/pre-commit" ]; then

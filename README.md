@@ -134,16 +134,16 @@ This repository follows a 3-tier environment and branching model for all project
 
 ### Environment Configurations
 
-Environment files provide configuration templates for each tier:
-- `.env.dev.example` (or `local.env.example`): Local development defaults (`ENVIRONMENT=dev`, `DEBUG=True`, `LOG_LEVEL=DEBUG`).
-- `.env.stg.example`: Staging environment defaults (`ENVIRONMENT=stg`, `DEBUG=False`, `LOG_LEVEL=INFO`).
-- `.env.prod.example`: Production environment defaults (`ENVIRONMENT=prod`, `DEBUG=False`, `LOG_LEVEL=WARNING`).
+Configuration is managed via `.env` (copied from `.env.example`):
+- **Development** (`ENVIRONMENT=dev`): `DEBUG=True`, `LOG_LEVEL=DEBUG`, local database and Redis.
+- **Staging** (`ENVIRONMENT=stg`): `DEBUG=False`, `LOG_LEVEL=INFO`, staging hosts.
+- **Production** (`ENVIRONMENT=prod`): `DEBUG=False`, `LOG_LEVEL=WARNING`, production hardening.
 
 The application automatically loads environment settings in this order:
 1. `ENV_FILE` path if set in `os.environ`
-2. `.env.<ENVIRONMENT>` (e.g. `.env.dev`, `.env.stg`, `.env.prod`)
-3. `local.env`
-4. `.env`
+2. `.env.<ENVIRONMENT>` (e.g. `.env.stg`, `.env.prod`)
+3. `.env` (copied from `.env.example`)
+4. `local.env` (legacy fallback)
 
 Django settings (`src/django_core/settings.py`) adapt dynamically:
 - `DEBUG`: Automatically `True` in `dev`, and `False` in `stg` / `prod`.
@@ -225,9 +225,7 @@ Django settings (`src/django_core/settings.py`) adapt dynamically:
 |               |-- example.html
 |               `-- index.html   # (environment badge & version indicator)
 |-- .dockerignore
-|-- .env.dev.example             # Development environment template
-|-- .env.stg.example             # Staging environment template
-|-- .env.prod.example            # Production environment template
+|-- .env.example                 # Environment configuration template (copy to .env)
 |-- .gitignore
 |-- .python-version
 |-- dev-setup.sh                 # ! run this one when you cloned
@@ -235,7 +233,6 @@ Django settings (`src/django_core/settings.py`) adapt dynamically:
 |-- docker-compose.yml           # Unified stack compose (App + Redis)
 |-- Dockerfile                   # Multi-stage Dockerfile (development & production runner)
 |-- LICENSE
-|-- local.env.example            # ! copy and create `local.env`
 |-- pyproject.toml               # python configuration. You have to change this.
 |-- README.md
 |-- supervisord.conf             # ! if you want to run multiple processes at the same time, learn this one
@@ -271,8 +268,7 @@ Let's say we will create another project based on this template with name `mypro
 The places where you need to change the name are:
 
 1. `pyproject.toml`: parameter `project.name`
-2. `.env.dev.example` / `local.env.example`: parameter `PROJECT_NAME`
-3. `.env.stg.example` / `.env.prod.example`: parameter `PROJECT_NAME`
+2. `.env.example`: parameter `PROJECT_NAME`
 (Docker Compose automatically uses `PROJECT_NAME` from your `.env` file)
 
 This should be enough for you to start developing.

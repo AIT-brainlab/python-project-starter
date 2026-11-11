@@ -33,22 +33,18 @@ log_info "Starting deployment for target environment: ${BOLD}${TARGET_ENV}${NC}.
 ENV_FILE=""
 if [[ -f ".env.${TARGET_ENV}" ]]; then
   ENV_FILE=".env.${TARGET_ENV}"
-elif [[ -f "local.env" ]]; then
-  ENV_FILE="local.env"
 elif [[ -f ".env" ]]; then
   ENV_FILE=".env"
+elif [[ -f "local.env" ]]; then
+  ENV_FILE="local.env"
 else
-  # Auto-create from example template
-  if [[ -f ".env.${TARGET_ENV}.example" ]]; then
-    log_warn "No env file found. Creating .env.${TARGET_ENV} from .env.${TARGET_ENV}.example..."
-    cp ".env.${TARGET_ENV}.example" ".env.${TARGET_ENV}"
-    ENV_FILE=".env.${TARGET_ENV}"
-  elif [[ -f "local.env.example" ]]; then
-    log_warn "No env file found. Creating local.env from local.env.example..."
-    cp "local.env.example" "local.env"
-    ENV_FILE="local.env"
+  # Auto-create from .env.example
+  if [[ -f ".env.example" ]]; then
+    log_warn "No .env file found. Creating .env from .env.example..."
+    cp ".env.example" ".env"
+    ENV_FILE=".env"
   else
-    log_err "Missing environment file and no example template found. Aborting."
+    log_err "Missing .env file and .env.example not found. Aborting."
     exit 1
   fi
 fi
