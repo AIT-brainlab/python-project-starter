@@ -105,7 +105,26 @@ This repository follows a 3-tier environment and branching model for all project
   - `bash scripts/release.sh promote main`: Fast-forwards `main` branch to the staging-tested release tag.
 
 - **`scripts/release-checks.sh`**:
-  Repository-specific pre-release checks sourced by `release.sh` (unit tests with `uv run pytest`, Django checks).
+  Repository-specific pre-release checks sourced by `release.sh` (data guard, unit tests with `uv run pytest`, Django checks).
+
+- **`scripts/check-data-guard.sh`**:
+  Validates repository hygiene and prevents sensitive data leaks (spreadsheets, database dumps, personal data in SQL/CSV, CRLF endings, or files > 512 KB).
+
+### GitHub Actions CI/CD Pipeline (`.github/`)
+
+- **Continuous Integration ([`.github/workflows/ci.yml`](.github/workflows/ci.yml))**:
+  Runs automated `pytest` and dependency checks across `dev`, `stg`, and `main` upon push and pull requests.
+- **Continuous Deployment ([`.github/workflows/cd.yml`](.github/workflows/cd.yml))**:
+  Automated multi-environment deployment engine using NetBird mesh and SSH:
+  - **Tag `v*` (cut from `dev`)** ➔ deploys to **Development** environment.
+  - **Push to `stg`** ➔ deploys to **Staging** environment.
+  - **Push to `main`** ➔ deploys to **Production** environment.
+  - **Automatic Rollback**: If deployment or smoke tests fail, the server immediately rolls back to the previous verified stable commit (`STABLE_REV`) with zero manual intervention.
+- **Composite Actions ([`.github/actions/`](.github/actions/))**:
+  - `preflight-check`: Validates deployment credentials and environment configuration.
+  - `netbird-connect`: Connects the GitHub runner to the NetBird VPN mesh network.
+  - `ssh-setup`: Configures SSH keys and known hosts.
+  - `ssh-exec`: Executes atomic deployment and rollback commands over SSH.
 
 ### Environment Configurations
 
@@ -136,9 +155,15 @@ Django settings (`src/django_core/settings.py`) adapt dynamically:
 ```
 .
 |-- .devcontainer/               # Where the development containers are defined
-|-- .github/                     # GitHub configurations (CI/CD workflows)
+|-- .github/                     # GitHub configurations (CI/CD workflows & actions)
+|   |-- actions/                 # Reusable composite deployment actions
+|   |   |-- netbird-connect/     # Connect runner to NetBird VPN mesh
+|   |   |-- preflight-check/     # Validate deployment secrets & variables
+|   |   |-- ssh-exec/            # Execute deployment & rollback over SSH
+|   |   `-- ssh-setup/           # Setup SSH authentication & known_hosts
 |   `-- workflows/
-|       `-- ci.yml
+|       |-- cd.yml               # Multi-environment CD deployment pipeline
+|       `-- ci.yml               # Continuous integration test runner
 |-- .vscode/                     # Where the vscode related configuration are kept
 |-- data                         # ! Where data is kept. All the data are ignored by default.
 |   `-- example.csv

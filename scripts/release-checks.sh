@@ -5,6 +5,12 @@
 # ==============================================================================
 
 run_release_checks() {
+  log_info "Running the sensitive data guard..."
+  if ! bash scripts/check-data-guard.sh; then
+    log_err "The data guard refused the tree (spreadsheets, database dumps, CRLF or large files)."
+    return 1
+  fi
+
   log_info "Running tests via pytest..."
   if command -v uv >/dev/null 2>&1; then
     if ! uv run pytest -q; then
