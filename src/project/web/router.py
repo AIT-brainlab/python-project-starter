@@ -15,6 +15,15 @@ template_path = Path(__file__).parent.joinpath("templates")
 templates = Jinja2Templates(directory=template_path)
 
 
+@router.get("/health")
+async def get_health():
+    return {
+        "status": "ok",
+        "environment": _ENVIRONMENT,
+        "build_version": _BUILD_VERSION,
+    }
+
+
 @router.get("/", response_class=HTMLResponse)
 async def get_index(request: Request):
     context = {

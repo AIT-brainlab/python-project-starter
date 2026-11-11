@@ -8,6 +8,7 @@ All `python` project should look like this and follow the standard.
   - [Branching & Environment Strategy (dev / stg / prod)](#branching--environment-strategy-dev--stg--prod)
     - [Branch Hierarchy](#branch-hierarchy)
     - [Promotion Workflow](#promotion-workflow)
+    - [Deployment & Automation Scripts (scripts/)](#deployment--automation-scripts-scripts)
     - [Environment Configurations](#environment-configurations)
   - [TODO](#todo)
   - [Project structure](#project-structure)
@@ -60,22 +61,51 @@ This repository follows a 3-tier environment and branching model for all project
    ```
 2. **Merge to `dev`**:
    Submit a PR targeting `dev`. CI runs automated tests on `dev`.
-3. **Promote `dev` to `stg` (Staging)**:
+3. **Cut a Release from `dev`**:
    ```sh
-   git checkout stg
-   git pull origin stg
-   git merge dev
-   git push origin stg
+   bash scripts/release.sh v0.1.0
    ```
-4. **Promote `stg` to `main` (Production)**:
+4. **Promote `dev` to `stg` (Staging)**:
    ```sh
-   git checkout main
-   git pull origin main
-   git merge stg
-   git push origin main
-   git tag -a v1.0.0 -m "Release v1.0.0"
-   git push origin v1.0.0
+   bash scripts/release.sh promote stg
    ```
+5. **Promote `stg` to `main` (Production)**:
+   ```sh
+   bash scripts/release.sh promote main
+   ```
+
+### Deployment & Automation Scripts (`scripts/`)
+
+- **`scripts/deploy.sh`**:
+  Deploys or starts the application stack for the target environment (`dev`, `stg`, or `prod`).
+  - Ensures required `.env` file exists (auto-creating from template if missing).
+  - Starts services (Docker Compose or local `uv` environment).
+  - Polls `/health` until the service is ready.
+  - Automatically executes post-deployment smoke tests.
+  ```sh
+  bash scripts/deploy.sh dev
+  bash scripts/deploy.sh stg
+  bash scripts/deploy.sh prod
+  ```
+
+- **`scripts/smoke-test.sh`**:
+  Performs post-deployment validation against the running application:
+  - Verifies `/health` responds with `status: ok`.
+  - Verifies `/` renders the index page and template context.
+  - Verifies `/example/{id}` renders dynamic parameters.
+  - Executes Django system integrity checks.
+  ```sh
+  bash scripts/smoke-test.sh http://127.0.0.1:8000
+  ```
+
+- **`scripts/release.sh`**:
+  Manages semantic releases and immutable fast-forward promotions:
+  - `bash scripts/release.sh vX.Y.Z`: Runs release checks, tags `origin/dev`, pushes tag, and publishes GitHub Release.
+  - `bash scripts/release.sh promote stg`: Fast-forwards `stg` branch to the verified release tag.
+  - `bash scripts/release.sh promote main`: Fast-forwards `main` branch to the staging-tested release tag.
+
+- **`scripts/release-checks.sh`**:
+  Repository-specific pre-release checks sourced by `release.sh` (unit tests with `uv run pytest`, Django checks).
 
 ### Environment Configurations
 
@@ -117,6 +147,11 @@ Django settings (`src/django_core/settings.py`) adapt dynamically:
 |-- models/                      # ! Where models (weight) should be stored.
 |-- notebooks/                   # ! Where jupyter notebook should be stored.
 |   `-- 0-starter.ipynb
+|-- scripts/                     # Deployment, release & verification scripts
+|   |-- deploy.sh                # Stack deployment with readiness checks & smoke test
+|   |-- release.sh               # Semantic release tagging & multi-env promotion
+|   |-- release-checks.sh        # Pre-release checks (pytest, Django check)
+|   `-- smoke-test.sh            # Post-deployment health, UI, and route validation
 |-- src/                         # ! Where development modules should be.
 |   |-- django_core              # |
 |   |   |-- __init__.py          # | 
