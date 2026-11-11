@@ -4,21 +4,25 @@
 #
 # Three branches / environments:
 #   dev   <- default working branch; release tags v* are cut here
-#   stg   <- staging environment; fast-forwarded from a release tag
-#   main  <- production environment; fast-forwarded from a verified staging tag
+#   stg   <- staging environment; updated via PR (dev -> stg) or promote
+#   main  <- production environment; updated via PR (stg -> main) or promote
 #
 # Usage:
 #   bash scripts/release.sh vX.Y.Z
-#       Runs pre-flight checks, tags origin/dev as vX.Y.Z, pushes tag, and
-#       creates a GitHub release if gh is available.
+#       Runs pre-flight checks, tags origin/dev as vX.Y.Z, pushes tag, triggers
+#       CI (test -> build & push Docker image to GHCR), and creates GitHub release.
+#
+#   bash scripts/release.sh pr stg
+#       Creates a Pull Request from 'dev' into 'stg' to trigger Staging deployment.
+#
+#   bash scripts/release.sh pr main
+#       Creates a Pull Request from 'stg' into 'main' to trigger Production deployment.
 #
 #   bash scripts/release.sh promote stg [vX.Y.Z]
-#       Fast-forwards branch 'stg' to a release tag (default: latest on dev)
-#       and pushes it to deploy to staging.
+#       Fast-forwards branch 'stg' directly to a release tag and pushes it.
 #
 #   bash scripts/release.sh promote main [vX.Y.Z]
-#       Fast-forwards branch 'main' to the release tag verified on staging
-#       and pushes it to deploy to production.
+#       Fast-forwards branch 'main' directly to the release tag and pushes it.
 # ==============================================================================
 set -euo pipefail
 
@@ -91,7 +95,7 @@ describe_env() {
 }
 
 usage() {
-  sed -n '2,20p' "$SCRIPT_PATH" | sed 's/^# \{0,1\}//'
+  sed -n '2,26p' "$SCRIPT_PATH" | sed 's/^# \{0,1\}//'
 }
 
 # release_tags [ref]: release tags (vX.Y.Z), oldest first; only reachable from ref if provided
@@ -173,9 +177,20 @@ release() {
     fi
   fi
 
-  banner "${GREEN}🎉 Release ${version} created successfully!${NC}"
+  banner "${GREEN}🎉 Release ${version} created and tag pushed!${NC}"
   echo -e "CI/CD Actions: ${BLUE}${ACTIONS_URL}${NC}"
-  echo -e "Next Step (Promote to Staging): ${BOLD}bash scripts/release.sh promote stg ${version}${NC}"
+  echo -e "Docker image build & push to GHCR has been triggered by tag ${version}."
+  echo ""
+  echo -e "${BOLD}Promotion & Deployment Steps:${NC}"
+  echo -e "1. Deploy to Staging (stg):"
+  echo -e "   Create and merge a Pull Request from 'dev' to 'stg':"
+  echo -e "     ${BOLD}bash scripts/release.sh pr stg${NC}"
+  echo -e "   (Or direct fast-forward: ${BOLD}bash scripts/release.sh promote stg ${version}${NC})"
+  echo ""
+  echo -e "2. Deploy to Production (main):"
+  echo -e "   Once verified on Staging, create and merge a Pull Request from 'stg' to 'main':"
+  echo -e "     ${BOLD}bash scripts/release.sh pr main${NC}"
+  echo -e "   (Or direct fast-forward: ${BOLD}bash scripts/release.sh promote main ${version}${NC})"
   echo ""
 }
 
@@ -277,9 +292,49 @@ promote() {
   banner "${GREEN}🎉 ${tag} promoted to '${target}' successfully!${NC}"
   echo -e "Watch Actions/Deployment: ${BLUE}${ACTIONS_URL}${NC}"
   if [[ "$target" == "stg" ]]; then
-    echo -e "After verifying on Staging: ${BOLD}bash scripts/release.sh promote main${NC}"
+    echo -e "After verifying on Staging: ${BOLD}bash scripts/release.sh pr main${NC} (or ${BOLD}promote main${NC})"
   fi
   echo ""
+}
+
+# ------------------------------------------------------------------------------
+# pr stg|main: create a Pull Request to promote code
+#   pr stg  -> opens PR dev into stg (merging deploys to Staging)
+#   pr main -> opens PR stg into main (merging deploys to Production)
+# ------------------------------------------------------------------------------
+create_pr() {
+  local target="${1:-}"
+  if [[ "$target" != "stg" && "$target" != "main" ]]; then
+    log_err "Usage: bash scripts/release.sh pr stg|main"
+    exit 2
+  fi
+
+  local base head title
+  if [[ "$target" == "stg" ]]; then
+    base="stg"
+    head="dev"
+    title="Promote dev to Staging"
+  else
+    base="main"
+    head="stg"
+    title="Promote Staging to Production (main)"
+  fi
+
+  banner "CREATE PULL REQUEST: ${head} -> ${base}"
+  echo -e "Merging this PR will trigger automated deployment to: $(describe_env "$base")"
+  echo ""
+
+  if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+    log_info "Creating Pull Request via gh CLI..."
+    gh pr create --base "$base" --head "$head" --title "$title" --body "Automated promotion PR from \`${head}\` into \`${base}\`." || {
+      log_warn "Failed to create PR automatically with gh CLI."
+      echo -e "You can create it manually at: https://github.com/${REPO_SLUG}/compare/${base}...${head}"
+    }
+  else
+    log_info "GitHub CLI (gh) not authenticated or not installed."
+    echo -e "Open the following link to create the Pull Request:"
+    echo -e "  ${BLUE}https://github.com/${REPO_SLUG}/compare/${base}...${head}?expand=1${NC}"
+  fi
 }
 
 # ------------------------------------------------------------------------------
@@ -289,6 +344,10 @@ case "${1:-}" in
   promote)
     shift
     promote "$@"
+    ;;
+  pr)
+    shift
+    create_pr "$@"
     ;;
   -h | --help)
     usage

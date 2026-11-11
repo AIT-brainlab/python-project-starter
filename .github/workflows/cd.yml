@@ -1,16 +1,30 @@
 name: 🚀 Deployment
 
-# One workflow, three environments (dev, stg, production).
-# Manually triggered via workflow_dispatch.
+# One workflow, two target deployment environments: stg and production.
+# Triggered automatically upon PR merge:
+#   - PR merged into 'stg'  (push to branch stg)  -> deploys to Staging (stg)
+#   - PR merged into 'main' (push to branch main) -> deploys to Production (production)
+# Also supports manual trigger via workflow_dispatch.
+#
+# Both environments execute the exact same deployment and rollback steps.
+# The only difference is the GitHub Environment settings containing the 5 variables/secrets:
+#   1. NETBIRD_KEY / NETBIRD_SETUP_KEY
+#   2. SERVER_HOST
+#   3. SERVER_USER
+#   4. SERVER_PROJECT_DIR
+#   5. SSH_PRIVATE_KEY
 on:
+  push:
+    branches:
+      - stg
+      - main
   workflow_dispatch:
     inputs:
       environment:
-        description: "Environment to deploy to."
+        description: "Environment to redeploy (stg or production)"
         type: choice
         required: true
         options:
-          - dev
           - stg
           - production
 
@@ -19,17 +33,30 @@ permissions:
 
 jobs:
   resolve:
-    name: 🧭 Resolve the target environment
+    name: 🧭 Resolve Target Environment
     runs-on: ubuntu-latest
     outputs:
       environment: ${{ steps.map.outputs.environment }}
     steps:
-      - name: Map the target environment
+      - name: Map Event to Target Environment
         id: map
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          CHOICE: ${{ inputs.environment }}
         run: |
-          TARGET="${{ inputs.environment }}"
+          case "$EVENT:$REF" in
+            push:refs/heads/stg)  TARGET=stg ;;
+            push:refs/heads/main) TARGET=production ;;
+            workflow_dispatch:*)  TARGET="$CHOICE" ;;
+            *) echo "::error::No deployment environment configured for event '$EVENT' on '$REF'."; exit 1 ;;
+          esac
+          case "$TARGET:$REF" in
+            stg:refs/heads/stg|production:refs/heads/main) ;;
+            *) echo "::error::Environment '$TARGET' can only deploy from branch '$TARGET', not from '$REF'."; exit 1 ;;
+          esac
           echo "environment=$TARGET" >> "$GITHUB_OUTPUT"
-          echo "Target environment: **$TARGET** (from \`${{ github.ref }}\`, commit \`${{ github.sha }}\`)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Target environment: **$TARGET** (from \`$REF\`, commit \`${GITHUB_SHA::7}\`)" >> "$GITHUB_STEP_SUMMARY"
 
   deploy:
     name: 🚀 Deploy to ${{ needs.resolve.outputs.environment }}
@@ -39,8 +66,6 @@ jobs:
     environment:
       name: ${{ needs.resolve.outputs.environment }}
       url: ${{ steps.record.outputs.url }}
-    # One deployment per environment at a time: a newer run waits; it never cancels a running
-    # deployment or rollback.
     concurrency:
       group: cd-${{ needs.resolve.outputs.environment }}
       cancel-in-progress: false
@@ -53,7 +78,7 @@ jobs:
         uses: ./.github/actions/preflight-check
         with:
           environment: ${{ needs.resolve.outputs.environment }}
-          netbird-setup-key: ${{ secrets.NETBIRD_SETUP_KEY }}
+          netbird-setup-key: ${{ secrets.NETBIRD_KEY || secrets.NETBIRD_SETUP_KEY }}
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
           netbird-management-url: ${{ vars.NETBIRD_MANAGEMENT_URL }}
           server-host: ${{ vars.SERVER_HOST }}
@@ -61,10 +86,7 @@ jobs:
           server-project-dir: ${{ vars.SERVER_PROJECT_DIR }}
 
       - name: 🛡️ Verify Sensitive Data Guard
-        run: |
-          if [ -f "scripts/check-data-guard.sh" ]; then
-            bash scripts/check-data-guard.sh
-          fi
+        run: bash scripts/check-data-guard.sh
 
       - name: 🐳 Validate Docker Compose Configuration
         run: |
@@ -78,7 +100,7 @@ jobs:
         uses: ./.github/actions/netbird-connect
         with:
           management-url: ${{ vars.NETBIRD_MANAGEMENT_URL }}
-          setup-key: ${{ secrets.NETBIRD_SETUP_KEY }}
+          setup-key: ${{ secrets.NETBIRD_KEY || secrets.NETBIRD_SETUP_KEY }}
           server-host: ${{ vars.SERVER_HOST }}
 
       - name: 🔑 Setup SSH Authentication
@@ -97,10 +119,9 @@ jobs:
             AUTH_REPO="https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
             TARGET_DIR="${{ vars.SERVER_PROJECT_DIR }}"
 
-            # First deployment: the directory may already hold the hand-made .env, so the
-            # checkout is initialised in place instead of cloned into an empty directory.
+            # First deployment: initialize in place if directory doesn't have .git
             if [ ! -d "$TARGET_DIR/.git" ]; then
-              echo "First deployment: preparing $TARGET_DIR (an existing .env is kept)..."
+              echo "First deployment: preparing $TARGET_DIR (existing .env is preserved)..."
               sudo mkdir -p "$TARGET_DIR"
               sudo chown -R "$(id -u):$(id -g)" "$TARGET_DIR"
               git -C "$TARGET_DIR" init -q
@@ -111,7 +132,7 @@ jobs:
             git remote set-url origin "$AUTH_REPO"
             git fetch -q origin --tags
 
-            # 1. The last verified deployment on this host: a commit. None on a first deployment.
+            # 1. Check last verified stable deployment
             STABLE_REV="$(cat .deploy_success 2>/dev/null || true)"
             if [ -z "$STABLE_REV" ]; then
               STABLE_REV="$(git rev-parse -q --verify HEAD 2>/dev/null || true)"
@@ -126,24 +147,24 @@ jobs:
               echo "=========================================================="
               echo "🚨 DEPLOYMENT OR SMOKE TEST FAILED!"
               if [ -z "$STABLE_REV" ]; then
-                echo "This was the first deployment on this host: there is nothing to roll back to."
+                echo "This was the first deployment on this host: nothing to roll back to."
                 echo "=========================================================="
                 exit 1
               fi
-              echo "Rolling back to the last verified deployment: ${STABLE_REV}"
+              echo "Rolling back to last verified deployment: ${STABLE_REV}"
               echo "=========================================================="
               git checkout -q -f "${STABLE_REV}"
               bash scripts/deploy.sh
-              echo "✅ Rollback to ${STABLE_REV} complete. Server restored to the last verified deployment."
+              echo "✅ Rollback to ${STABLE_REV} complete. Server restored to verified stable baseline."
               echo "Failing workflow per Fail Forward policy."
               exit 1
             fi
 
-            # 2. Only record the new commit AFTER deploy.sh and the smoke test SUCCEED
+            # 2. Record new commit only after deployment and smoke tests pass
             echo "${{ github.sha }}" > .deploy_success
-            echo "✅ Deployment verified! Recorded ${{ github.ref_name }} (${{ github.sha }}) as the new stable baseline."
+            echo "✅ Deployment verified! Recorded ${{ github.ref_name }} (${{ github.sha }}) as new stable baseline."
 
-      - name: 🔗 Record the environment URL
+      - name: 🔗 Record Environment URL
         id: record
         env:
           SERVER_HOST: ${{ vars.SERVER_HOST }}

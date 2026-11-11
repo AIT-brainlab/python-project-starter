@@ -34,3 +34,18 @@ package = true
 [project.scripts]
 python-project-starter = "project:cli"
 
+[tool.pytest_env]
+ENVIRONMENT = "dev"
+BUILD_VERSION = "0.1.0-test"
+PROJECT_NAME = "python-project-starter"
+LOG_DIR = "logs/"
+LOG_NAME = "test.log"
+LOG_ROTATE_NAME = "test_rotate.log"
+LOG_LEVEL = "DEBUG"
+FASTAPI_HOST = "0.0.0.0"
+FASTAPI_PORT = "8000"
+FASTAPI_WORKERS = "1"
+REDIS_URL = "redis://localhost:6379/0"
+DJANGO_SECRET_KEY = "test-django-secret-key"
+ALLOWED_HOSTS = "*"
+

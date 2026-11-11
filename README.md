@@ -47,32 +47,59 @@ This repository follows a 3-tier environment and branching model for all project
 - **`stg`**: Merged from `dev` when preparing a release candidate for QA/testing.
 - **`main` (Production)**: Merged from `stg` after validation. Corresponds to production deployments (`prod`). Release tags (e.g. `v1.0.0`) are created on `main`.
 
-### Promotion Workflow
+### Promotion & Release Workflow
 
 ```
-[feature/xxx] ---> [dev] ---> [stg] ---> [main (prod)]
+[feature/xxx] ---> [dev] (tag vX.Y.Z -> CI builds & pushes to GHCR)
+                    |
+                    v (PR merge)
+                  [stg] (CD deploys to Staging)
+                    |
+                    v (PR merge)
+                  [main] (CD deploys to Production)
 ```
 
-1. **Feature development**:
+1. **Feature development on `dev`**:
    ```sh
    git checkout dev
    git pull origin dev
    git checkout -b feature/my-feature
+   # ... implement changes ...
+   git push origin feature/my-feature
    ```
-2. **Merge to `dev`**:
-   Submit a PR targeting `dev`. CI runs automated tests on `dev`.
-3. **Cut a Release from `dev`**:
+   Submit a PR targeting `dev`. Developers merge and update `dev`. CI runs manually by default on dev.
+
+2. **Cut a Release & Publish Docker Image to GHCR**:
+   When features on `dev` are ready for release, execute the release script:
    ```sh
    bash scripts/release.sh v0.1.0
    ```
-4. **Promote `dev` to `stg` (Staging)**:
+   This script:
+   - Runs local pre-flight checks (`scripts/release-checks.sh`: data guard, pytest, Django check).
+   - Verifies the working tree is clean and synced with `origin/dev`.
+   - Creates annotated tag `v0.1.0` on `dev` and pushes to `origin`.
+   - **Triggers CI & GHCR Build**: Pushing tag `v*` triggers `.github/workflows/ci.yml`, running tests, building the multi-stage Docker runner image, and pushing `ghcr.io/<org>/<repo>:v0.1.0` and `:latest`.
+   - Creates a GitHub Release via `gh release create`.
+
+3. **Deploy to Staging (`stg`) via PR**:
+   Promote code to staging by opening a PR from `dev` into `stg`:
    ```sh
-   bash scripts/release.sh promote stg
+   bash scripts/release.sh pr stg
+   # Or using gh CLI directly:
+   gh pr create --base stg --head dev --title "Release v0.1.0 -> Staging"
    ```
-5. **Promote `stg` to `main` (Production)**:
+   **Merging this PR into `stg` automatically triggers the CD pipeline (`.github/workflows/cd.yml`)**, deploying the release to the Staging server and running post-deployment smoke tests.
+
+4. **Deploy to Production (`main`) via PR**:
+   After testing and verifying the staging deployment, open a PR from `stg` into `main`:
    ```sh
-   bash scripts/release.sh promote main
+   bash scripts/release.sh pr main
+   # Or using gh CLI directly:
+   gh pr create --base main --head stg --title "Release v0.1.0 -> Production"
    ```
+   **Merging this PR into `main` automatically triggers the CD pipeline (`.github/workflows/cd.yml`)**, deploying the release to the Production server with automatic rollback if smoke tests fail.
+
+*(Direct branch fast-forwarding is also supported if direct push is enabled: `bash scripts/release.sh promote stg` and `bash scripts/release.sh promote main`)*.
 
 ### Deployment & Automation Scripts (`scripts/`)
 
@@ -118,11 +145,24 @@ This repository follows a 3-tier environment and branching model for all project
 
 ### GitHub Actions CI/CD Pipeline (`.github/`)
 
-- **Continuous Integration ([`.github/workflows/ci.yml`](.github/workflows/ci.yml))**:
-  Automated test suite with `uv run pytest`. Configured for manual trigger (`workflow_dispatch`).
+- **Continuous Integration & Docker Build ([`.github/workflows/ci.yml`](.github/workflows/ci.yml))**:
+  - **Triggers**: Tag push (`v*`) or manual trigger (`workflow_dispatch`).
+  - Runs unit tests via `uv run pytest`.
+  - Builds the production container using the `runner` target in multi-stage `Dockerfile`.
+  - Pushes image with tags (`vX.Y.Z`, `vX.Y`, `latest`) to GitHub Container Registry (`ghcr.io/<org>/<repo>`).
 - **Continuous Deployment ([`.github/workflows/cd.yml`](.github/workflows/cd.yml))**:
-  Automated multi-environment deployment engine using NetBird mesh and SSH, triggered manually (`workflow_dispatch`) with environment selection (`dev`, `stg`, `production`):
+  - **Triggers**: PR merge into `stg` (deploys to Staging) or `main` (deploys to Production), or manual trigger (`workflow_dispatch`).
+  - **Environment Symmetry**: Staging (`stg`) and Production (`production`) execute the exact same deployment and rollback job.
   - **Automatic Rollback**: If deployment or smoke tests fail, the server immediately rolls back to the previous verified stable commit (`STABLE_REV`) with zero manual intervention.
+  - **Environment Configuration**: Set up two GitHub Environments under **Settings > Environments**: `stg` and `production`. Each requires the following 5 credentials:
+    | Variable / Secret | Type | Description |
+    |---|---|---|
+    | `NETBIRD_KEY` / `NETBIRD_SETUP_KEY` | Secret | NetBird mesh VPN setup key for runner access |
+    | `SSH_PRIVATE_KEY` | Secret | SSH private key to authenticate against deployment server |
+    | `SERVER_HOST` | Variable | Target server IP or NetBird hostname |
+    | `SERVER_USER` | Variable | Target server SSH user |
+    | `SERVER_PROJECT_DIR` | Variable | Target directory on server (e.g. `/opt/python-project-starter`) |
+    | *`NETBIRD_MANAGEMENT_URL`* | Variable | *(Optional)* Custom NetBird management URL if self-hosted |
 - **Composite Actions ([`.github/actions/`](.github/actions/))**:
   - `preflight-check`: Validates deployment credentials and environment configuration.
   - `netbird-connect`: Connects the GitHub runner to the NetBird VPN mesh network.
