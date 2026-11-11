@@ -28,8 +28,6 @@ services:
     env_file:
       - path: ${ENV_FILE:-.env}
         required: false
-      - path: local.env
-        required: false
     environment:
       FASTAPI_HOST: "0.0.0.0"
       FASTAPI_PORT: 8000

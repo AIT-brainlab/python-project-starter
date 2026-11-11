@@ -35,8 +35,6 @@ if [[ -f ".env.${TARGET_ENV}" ]]; then
   ENV_FILE=".env.${TARGET_ENV}"
 elif [[ -f ".env" ]]; then
   ENV_FILE=".env"
-elif [[ -f "local.env" ]]; then
-  ENV_FILE="local.env"
 else
   # Auto-create from .env.example
   if [[ -f ".env.example" ]]; then

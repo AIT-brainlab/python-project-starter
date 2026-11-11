@@ -10,12 +10,10 @@ _target_env = os.getenv("ENVIRONMENT", "dev").lower()
 # 1. Explicit ENV_FILE if specified in os.environ
 # 2. .env.<environment> (e.g. .env.dev, .env.stg, .env.prod)
 # 3. .env (standard: copied from .env.example)
-# 4. local.env (legacy fallback)
 _env_candidates: list[Path | None] = [
     Path(os.environ["ENV_FILE"]) if "ENV_FILE" in os.environ else None,
     Path(f".env.{_target_env}"),
     Path(".env"),
-    Path("local.env"),
 ]
 
 _loaded_file = None

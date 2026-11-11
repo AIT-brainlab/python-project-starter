@@ -1,24 +1,12 @@
 name: 🚀 Deployment
 
-# One workflow, three environments. The GitHub Environments dev, stg, and production hold the
-# same variable and secret names (SERVER_HOST, SERVER_USER, SERVER_PROJECT_DIR, SSH_PRIVATE_KEY)
-# with their own values; NETBIRD_MANAGEMENT_URL and NETBIRD_SETUP_KEY stay at repository level.
-#   push of a v* tag  (scripts/release.sh vX.Y.Z, cut from dev)  -> dev        (VM ait-itserv-dev)
-#   push to branch stg  (scripts/release.sh promote stg)          -> stg        (VM ait-itserv-uat)
-#   push to branch main (scripts/release.sh promote main)         -> production (campus VM ait-itserv-vm)
-#   workflow_dispatch: redeploy one environment from its own ref (recovery only)
+# One workflow, three environments (dev, stg, production).
+# Manually triggered via workflow_dispatch.
 on:
-  push:
-    tags:
-      - 'v*'
-    branches:
-      - stg
-      - uat
-      - main
   workflow_dispatch:
     inputs:
       environment:
-        description: "Environment to redeploy. Run it from that environment's ref: dev from a v* tag, stg from branch stg, production from branch main."
+        description: "Environment to deploy to."
         type: choice
         required: true
         options:
@@ -36,27 +24,12 @@ jobs:
     outputs:
       environment: ${{ steps.map.outputs.environment }}
     steps:
-      - name: Map the event to an environment
+      - name: Map the target environment
         id: map
-        env:
-          EVENT: ${{ github.event_name }}
-          REF: ${{ github.ref }}
-          CHOICE: ${{ inputs.environment }}
         run: |
-          case "$EVENT:$REF" in
-            push:refs/tags/v*)              TARGET=dev ;;
-            push:refs/heads/stg|push:refs/heads/uat) TARGET=stg ;;
-            push:refs/heads/main)           TARGET=production ;;
-            workflow_dispatch:*)            TARGET="$CHOICE" ;;
-            *) echo "::error::No environment for event '$EVENT' on '$REF'."; exit 1 ;;
-          esac
-          # An environment deploys only from its own ref, also when dispatched by hand.
-          case "$TARGET:$REF" in
-            dev:refs/tags/v*|stg:refs/heads/stg|stg:refs/heads/uat|production:refs/heads/main) ;;
-            *) echo "::error::Environment '$TARGET' deploys only from its own ref (dev: a v* tag, stg: branch stg, production: branch main), not from '$REF'."; exit 1 ;;
-          esac
+          TARGET="${{ inputs.environment }}"
           echo "environment=$TARGET" >> "$GITHUB_OUTPUT"
-          echo "Target environment: **$TARGET** (from \`$REF\`, commit \`${GITHUB_SHA::7}\`)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Target environment: **$TARGET** (from \`${{ github.ref }}\`, commit \`${{ github.sha }}\`)" >> "$GITHUB_STEP_SUMMARY"
 
   deploy:
     name: 🚀 Deploy to ${{ needs.resolve.outputs.environment }}
@@ -96,11 +69,9 @@ jobs:
       - name: 🐳 Validate Docker Compose Configuration
         run: |
           if [ -f "docker-compose.yml" ]; then
-            cp .env.example .env 2>/dev/null || cp local.env.example .env 2>/dev/null || true
+            cp .env.example .env 2>/dev/null || true
             docker compose config --quiet
             rm -f .env
-          elif [ -f ".devcontainer/docker-compose.yml" ]; then
-            docker compose -f .devcontainer/docker-compose.yml config --quiet
           fi
 
       - name: 🌐 Connect to NetBird VPN Mesh

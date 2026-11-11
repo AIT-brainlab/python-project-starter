@@ -119,12 +119,9 @@ This repository follows a 3-tier environment and branching model for all project
 ### GitHub Actions CI/CD Pipeline (`.github/`)
 
 - **Continuous Integration ([`.github/workflows/ci.yml`](.github/workflows/ci.yml))**:
-  Runs automated `pytest` and dependency checks across `dev`, `stg`, and `main` upon push and pull requests.
+  Automated test suite with `uv run pytest`. Configured for manual trigger (`workflow_dispatch`).
 - **Continuous Deployment ([`.github/workflows/cd.yml`](.github/workflows/cd.yml))**:
-  Automated multi-environment deployment engine using NetBird mesh and SSH:
-  - **Tag `v*` (cut from `dev`)** ➔ deploys to **Development** environment.
-  - **Push to `stg`** ➔ deploys to **Staging** environment.
-  - **Push to `main`** ➔ deploys to **Production** environment.
+  Automated multi-environment deployment engine using NetBird mesh and SSH, triggered manually (`workflow_dispatch`) with environment selection (`dev`, `stg`, `production`):
   - **Automatic Rollback**: If deployment or smoke tests fail, the server immediately rolls back to the previous verified stable commit (`STABLE_REV`) with zero manual intervention.
 - **Composite Actions ([`.github/actions/`](.github/actions/))**:
   - `preflight-check`: Validates deployment credentials and environment configuration.
@@ -143,7 +140,6 @@ The application automatically loads environment settings in this order:
 1. `ENV_FILE` path if set in `os.environ`
 2. `.env.<ENVIRONMENT>` (e.g. `.env.stg`, `.env.prod`)
 3. `.env` (copied from `.env.example`)
-4. `local.env` (legacy fallback)
 
 Django settings (`src/django_core/settings.py`) adapt dynamically:
 - `DEBUG`: Automatically `True` in `dev`, and `False` in `stg` / `prod`.
@@ -228,7 +224,6 @@ Django settings (`src/django_core/settings.py`) adapt dynamically:
 |-- .env.example                 # Environment configuration template (copy to .env)
 |-- .gitignore
 |-- .python-version
-|-- dev-setup.sh                 # ! run this one when you cloned
 |-- django_manage.py
 |-- docker-compose.yml           # Unified stack compose (App + Redis)
 |-- Dockerfile                   # Multi-stage Dockerfile (development & production runner)
@@ -276,7 +271,14 @@ This should be enough for you to start developing.
 ### Setup development
 
 1. (optional) spin up devcontainer in vscode (<kbd>cmd/ctrl</kbd> + <kbd>shift</kbd> + <kbd>P</kbd> and choose `Dev Containers: Rebuild and reopen in Container`)
-2. Set up the development environment in one go using `bash dev-setup.sh`
+2. Create your environment configuration:
+   ```sh
+   cp .env.example .env
+   ```
+3. Install dependencies and set up environment using `uv`:
+   ```sh
+   uv sync
+   ```
 
 ### Command Script
 

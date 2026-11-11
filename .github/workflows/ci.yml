@@ -1,16 +1,8 @@
 name: CI
 
+# Manual trigger only (workflow_dispatch)
 on:
-  push:
-    branches:
-      - dev
-      - stg
-      - main
-  pull_request:
-    branches:
-      - dev
-      - stg
-      - main
+  workflow_dispatch:
 
 jobs:
   test:
